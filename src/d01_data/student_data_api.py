@@ -1,7 +1,5 @@
-import pandas as pd
 import sys
 sys.path.append('../..')
-
 
 from src.d01_data.abstract_data_api import AbstractDataApi
 
@@ -9,6 +7,11 @@ _student_file_path = "Data/Cleaned/student_{period:s}.csv"
 
 
 class StudentDataApi(AbstractDataApi):
+    """
+    This class does the ETL work for the student data. This student data was cleaned and consolidated by the Stanford
+    School choice research team and contains information from the choice process as well as student level demographic
+    data.
+    """
     def __init__(self):
         super().__init__()
         pass
@@ -31,6 +34,7 @@ class StudentDataApi(AbstractDataApi):
                 df = df.append(df_period, ignore_index=True)
 
         return df
+
 
 if __name__ == "__main__":
     # execute only if run as a script
