@@ -3,6 +3,5 @@
 .RData
 .Ruserdata
 .ipynb_checkpoints
-notebooks/.ipynb_checkpoints
 dssg-env
 __pycache__
