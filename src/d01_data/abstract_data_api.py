@@ -20,15 +20,23 @@ class AbstractDataApi:
         df = pd.read_csv(path, low_memory=False)
         
         return df
+    
+    def read_excel(self, path, ratio, nrows):
+        df = pd.read_excel(path, sheet_name=None)
+        
+        return df
+        
 
     def read_data(self, file_name, ratio=None, nrows=None):
-        file_type = file_name[-3:]
+        file_type = file_name.split(".")[-1]
         path = _raw_file_path + file_name
             
         if file_type == "csv":
             return self.read_csv(path, ratio, nrows)
         elif file_type == "dta":
             return self.read_dta(path, ratio, nrows)
+        elif file_type == "xlsx":
+            return self.read_excel(path, ratio, nrows)
         else:
             raise Exception("Format .%s not implemented" % file_type)
 
