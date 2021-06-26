@@ -12,6 +12,9 @@ class StudentDataApi(AbstractDataApi):
     School choice research team and contains information from the choice process as well as student level demographic
     data.
     """
+
+    _cache_data = dict()
+
     def __init__(self):
         super().__init__()
         pass
@@ -26,8 +29,11 @@ class StudentDataApi(AbstractDataApi):
 
         df = None
         for period in periods_list:
-            df_period = self.read_data(_student_file_path.format(period=period))
-            df_period.drop(columns=['Unnamed: 0'], inplace=True)
+            if period not in self._cache_data.keys():
+                df_raw = self.read_data(_student_file_path.format(period=period))
+                self._cache_data[period] = df_raw.drop(columns=['Unnamed: 0'])
+            df_period = self._cache_data[period].copy()
+
             if df is None:
                 df = df_period
             else:
