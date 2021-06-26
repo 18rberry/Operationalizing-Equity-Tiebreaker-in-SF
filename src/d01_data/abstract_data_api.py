@@ -4,7 +4,7 @@ import numpy as np
 _raw_file_path = "/share/data/school_choice/"
 _out_file_path = _raw_file_path + "dssg/"
 
-class ETL:    
+class AbstractDataApi:    
     def __init__(self):
         pass
     
