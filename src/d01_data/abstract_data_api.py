@@ -21,8 +21,8 @@ class AbstractDataApi:
 
     @staticmethod
     def read_excel(path):
-        df = pd.read_excel(path, sheet_name=None)
-        
+        df = pd.read_excel(path, sheet_name=None, engine="openpyxl")
+
         return df
 
     def read_data(self, file_name):
