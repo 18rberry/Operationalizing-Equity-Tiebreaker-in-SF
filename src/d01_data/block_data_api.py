@@ -37,8 +37,13 @@ class BlockDataApi(AbstractDataApi):
         else:
             if 'data' not in self._cache_demographic.keys():
                 df_dict = self.read_data(_block_demographic_file_path)
+                
                 self._cache_demographic['fields'] = df_dict['field descriptions']
                 self._cache_demographic['data'] = df_dict['block database']
+                
+                #Clean the Fields dataframe from NaN columns and rows:
+                self._cache_demographic['fields'] = self._cache_demographic['fields'].dropna(axis=0, how='all')
+                self._cache_demographic['fields'] = self._cache_demographic['fields'].dropna(axis=1, how='all')
 
             df = self._cache_demographic['data'].copy()
             return df
