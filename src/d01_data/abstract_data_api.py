@@ -37,6 +37,9 @@ class AbstractDataApi:
             return self.read_excel(path)
         else:
             raise Exception("Format .%s not implemented" % file_type)
+            
+    def get_data(self):
+        raise NotImplementedError("Method not implemented for abstract class")
 
     @staticmethod
     def save_data(df, file_name):
