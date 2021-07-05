@@ -2,6 +2,7 @@ import sys
 sys.path.append('../..')
 
 from src.d01_data.abstract_data_api import AbstractDataApi
+from collections import defaultdict
 
 _block_sfha_file_path = "Census Blocks w SFHA Flag.xlsx"
 _block_demographic_file_path = "Data/SF 2010 blks 022119 with field descriptions (1).xlsx"
@@ -99,12 +100,13 @@ class BlockDataApi(AbstractDataApi):
     #classify the columns of the block dataframe according to themes
     def get_classification(self, classification="first_round"):
         
+        if not hasattr(self, "_cache_demographic"):
+            self.load_data(sfha="False")
+        
         #parameter referring to classification will allow us to experiment with other classifications. So far only one.
         if classification == "first_round":
-            
-            from collections import defaultdict
 
-            field_list = list(block_df.columns)
+            field_list = list(self._cache_demographic['data'].columns)
 
             race_words = ["Black", "African", "Filipino", "Asian", "Hisp", "White", "Samoa", "Mixed", "Pacific",
                           "Decl", "Other", "DS", "Wht", "AALPI", "Asn", "AfAm"]
