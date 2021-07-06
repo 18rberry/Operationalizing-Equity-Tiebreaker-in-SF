@@ -13,7 +13,7 @@ _hoc_idx = ['HOCidx1', 'HOCidx2', 'HOCidx3']
                              
 _block_features = ['freelunch_prob', 'reducedlunch_prob', 'ctip1'] + _hoc_idx + _diversity_index_features
 
-_census_block_column = 'census_block'
+_census_block_column = 'census_blockgroup'
 _period_column = 'year'
 _studentno = 'studentno'
 
@@ -64,13 +64,13 @@ class StudentDataApi(AbstractDataApi):
     
     def get_data_by_block(self, periods_list=None):
         df = self.get_data(periods_list)
-        cols = [_period_column, _block_group_column, _studentno]
-        df_block = df[cols].groupby([_block_group_column, _period_column]).count()
+        cols = [_period_column, _census_block_column, _studentno]
+        df_block = df[cols].groupby([_census_block_column, _period_column]).count()
         df_block.columns = ['count']
         indx = df_block.index
         
-        cols = [_period_column, _block_group_column] + _block_features
-        df_block[_block_features] = df[cols].groupby([_block_group_column, _period_column]).mean().reindex(indx).values
+        cols = [_period_column, _census_block_column] + _block_features
+        df_block[_block_features] = df[cols].groupby([_census_block_column, _period_column]).mean().reindex(indx).values
         
         return df_block
 
@@ -82,10 +82,10 @@ if __name__ == "__main__":
     periods_list = ["1415", "1516", "1617", "1718", "1819", "1920"]
     df = student_data_api.get_data_by_block(periods_list=periods_list)
     
-    blockgroup_index = df.index.get_level_values('census_blockgroup').unique()
+    block_index = df.index.get_level_values(_census_block_column).unique()
 
     np.random.seed(1992)
-    blockgroup_ids = np.random.choice(blockgroup_index, size=5)
+    block_ids = np.random.choice(block_index, size=5)
 
     print(df.loc[(blockgroup_ids, slice(None)), ['count', 'ctip1']].to_string())
     
