@@ -7,7 +7,7 @@ from collections import defaultdict
 _block_sfha_file_path = "Census Blocks w SFHA Flag.xlsx"
 _block_demographic_file_path = "Data/SF 2010 blks 022119 with field descriptions (1).xlsx"
 
-_census_block_column = 'Block'
+_census_block_column = 'BlockGroup'
 
 _acs_columns = ['ACS 2013-17 est median HH income',
  'ACS 2013-17 est median family income',
