@@ -6,6 +6,8 @@ from src.d01_data.abstract_data_api import AbstractDataApi
 
 _student_file_path = "Data/Cleaned/student_{period:s}.csv"
 
+_diversity_index_col = 'Diversity Index'
+_prob_col = 'prob'
 _diversity_index_features = ['AALPI Score', 'Academic Score', 'Nhood SES Score', 'FRL Score']
 
 # Henry's Index
@@ -17,6 +19,10 @@ _census_block_column = 'census_blockgroup'
 _period_column = 'year'
 _studentno = 'studentno'
 
+
+_gamma = 2.5
+def prob_focal_given_block(diversity_index):
+    return np.power(diversity_index, _gamma)
 
 def float2code(x):
     return  "%i" % x if np.isfinite(x) else "NaN"
@@ -73,6 +79,12 @@ class StudentDataApi(AbstractDataApi):
         df_block[_block_features] = df[cols].groupby([_census_block_column, _period_column]).mean().reindex(indx).values
         
         return df_block
+    
+    def get_diversity_index(self, df):
+        df[_diversity_index_col] = df[_diversity_index_features].mean(axis=1)
+        
+    def get_focal_probability(self, df):
+        df[_prob_col] = df[_diversity_index_col].apply(prob_focal_given_block)
 
 
 if __name__ == "__main__":
