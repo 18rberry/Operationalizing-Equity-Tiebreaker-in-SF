@@ -6,6 +6,7 @@ from collections import defaultdict
 
 _block_sfha_file_path = "Census Blocks w SFHA Flag.xlsx"
 _block_demographic_file_path = "Data/SF 2010 blks 022119 with field descriptions (1).xlsx"
+_block_frl_file_path = "FRL_data.xlsx"
 
 _census_block_column = 'BlockGroup'
 
@@ -28,25 +29,39 @@ _acs_columns = ['ACS 2013-17 est median HH income',
 
 class BlockDataApi(AbstractDataApi):
     """
-    This class does the ETL work for the Census Block data. There are two types of Census Block data:
+    This class does the ETL work for the Census Block data. There are three types of Census Block data:
     - SFHA: This is block data from federal housing and household income with information flagged by
      the San Francisco Housing Authority (SFHA). Corrobarate data source.
-    - Demographic: Block level demographic data.
-    This data was collected in the 2010 Census and provided by SFUSD.
+    - Demographic: Block level demographic data. This data was collected by multiple sources.
+    - FRL: Block level data on counts of focal students. Blocks with less than 5 students have been aggregated
+     into block groups to avoid re-identifiability.
     """
     _cache_sfha = dict()
+    _cache_frl = dict()
     _cache_demographic = dict()
 
     def __init__(self):
         super().__init__()
         pass
     
-    def load_data(self, sfha=False):
+    def load_data(self, sfha=False, frl=False, user=""):
         if sfha:
             if 'data' not in self._cache_sfha.keys():
                 df_dict = self.read_data(_block_sfha_file_path)
                 self._cache_sfha['fields'] = df_dict['Field Descriptions']
                 self._cache_sfha['data'] = df_dict['Block data']
+        
+        elif frl:
+            if "data" not in self._cache_frl.keys():
+                df_dict = self.read_data(_block_frl_file_path, shared=False, user=user)
+                
+                self._cache_frl['fields'] = df_dict['Field Description']
+                self._cache_frl['data'] = df_dict['Grouped GeoID External']
+
+                # Clean the Fields dataframe from NaN columns and rows:
+                self._cache_frl['fields'] = self._cache_frl['fields'].dropna(axis=0, how='all')
+                self._cache_frl['fields'] = self._cache_frl['fields'].dropna(axis=1, how='all')
+        
         else:
             if 'data' not in self._cache_demographic.keys():
                 df_dict = self.read_data(_block_demographic_file_path)
@@ -65,33 +80,41 @@ class BlockDataApi(AbstractDataApi):
                 self._cache_demographic['fields'] = self._cache_demographic['fields'].dropna(axis=0, how='all')
                 self._cache_demographic['fields'] = self._cache_demographic['fields'].dropna(axis=1, how='all')
 
-    def get_data(self, sfha=False):
+    def get_data(self, sfha=False, frl=False, user=""):
         """
         :return:
         """
-        self.load_data(sfha)
+        self.load_data(sfha, frl, user)
         if sfha:
             df = self._cache_sfha['data'].copy()
+            return df
+        elif frl:
+            df = self._cache_frl['data'].copy()
             return df
         else:
             df = self._cache_demographic['data'].copy()
             return df
         
-    def get_fields(self, sfha=False):
+    def get_fields(self, sfha=False, frl=False, user=""):
         """
         :return:
         """
-        self.load_data(sfha)
+        self.load_data(sfha, frl, user)
         if sfha:
             df = self._cache_sfha['fields'].copy()
+            return df
+        elif frl:
+            df = self._cache_frl['fields'].copy()
             return df
         else:
             df = self._cache_demographic['fields'].copy()
             return df
         
-    def get_fields_for_columns(self, columns, sfha=False):
+    def get_fields_for_columns(self, columns, sfha=False, frl=False):
         if sfha:
             df = self._cache_sfha['fields'].copy()
+        elif frl:
+            df = self._cache_frl['fields'].copy()
         else:
             df = self._cache_demographic['fields'].copy()
         df.set_index('Field Name', inplace=True)
