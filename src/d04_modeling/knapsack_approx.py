@@ -1,5 +1,5 @@
 import sys
-sys.path.append('../..')
+sys.path.append('../../')
 
 import numpy as np
 import pandas as pd
@@ -45,27 +45,41 @@ class KnapsackApprox:
                     self.value_function[i, v] = w_i
                     continue
                 if v > self.v['cumsum'].iloc[i-1]:
-                    self.value_function[i, v] = w_i + self.value_function[i-1, v]
+                    self.value_function[i, v] = w_i + self.get_values(i-1, v-v_i)
                 else:
-                    w1 = self.value_function[i-1, v]
-                    w2 = w_i + self.value_function[i, max(0, v-v_i)]
+                    w1 = self.get_values(i-1, v)
+                    w2 = w_i + self.get_values(i-1, max(0, v-v_i))
                     self.value_function[i, v] = min(w1, w2)
 
         return None
 
+    def get_values(self, i, v):
+        if i < 0:
+            return 0.
+        w = self.value_function[i, v]
+        if np.isfinite(w):
+            return w
+        else:
+            return 0.
+
     def get_solution(self, w_max):
         solution_set = []
 
-        feasible_solutions = np.argwhere(self.value_function <= w_max)
+        v_opt = np.max(np.argwhere(self.value_function[-1][:] <= w_max).flatten())
+        v = v_opt
+        i = self.value_function.shape[0]-1
 
-        max_solution = np.argmax(feasible_solutions[:, 1])
-        i, v = feasible_solutions[max_solution]
-
-        while i >= 0:
+        while v > 0:
             w_i = self.w.iloc[i]
             v_i = self.v['v_hat'].iloc[i]
+            w1 = self.get_values(i, v)
+            w2 = w_i + self.get_values(i-1, v-v_i)
+            if w1 == w2:
+                solution_set += [self.v.index[i]]
+                v -= v_i
+            i -= 1
 
-        raise NotImplementedError()
+        return v_opt, solution_set
 
 
 if __name__ == "__main__":
@@ -85,5 +99,15 @@ if __name__ == "__main__":
 
     solver.solve()
 
-    plt.imshow(solver.value_function)
+    plt.imshow(pd.DataFrame(solver.value_function).fillna(0))
     plt.show()
+
+    total_students = (data['nFocalStudents'].values + data['nOtherStudents'].values).sum()
+    fp_rate = 0.1
+    w_max = fp_rate * total_students
+    v_opt, solution_set = solver.get_solution(w_max=w_max)
+    solution_set = pd.Index(solution_set, name=data.index.name)
+    results = data.loc[solution_set].sum()
+    assert(results['nFocalStudents'] == v_opt)
+    assert(results['nOtherStudents'] <= w_max)
+
