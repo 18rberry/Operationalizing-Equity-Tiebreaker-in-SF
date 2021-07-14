@@ -56,7 +56,17 @@ class BlockDataApi(AbstractDataApi):
                 df_dict = self.read_data(_block_frl_file_path, shared=False, user=user)
                 
                 self._cache_frl['fields'] = df_dict['Field Description']
-                self._cache_frl['data'] = df_dict['Grouped GeoID External']
+                
+                #For grouped blocks we need to average the counts:
+                new_df = df_dict['Grouped GeoID External'].copy()
+
+                count_df = new_df.groupby(['Geoid Group']).size().to_frame(name="count").reset_index()
+                extended_df = new_df.merge(count_df, on="Geoid Group")
+    
+                for col in list(new_df.columns)[2:]:
+                    new_df[col] = extended_df[col]/extended_df["count"]
+                
+                self._cache_frl['data'] = new_df
 
                 # Clean the Fields dataframe from NaN columns and rows:
                 self._cache_frl['fields'] = self._cache_frl['fields'].dropna(axis=0, how='all')
