@@ -1,5 +1,54 @@
 # DSSG 2021 SFUSD Project
 
+# General Objective
+
+The general objective of this project is to build an equity tiebreaker that can improve the outcome of _focal_ students in the SFUSD school assignment without also benefiting non-focal students.
+
+We will attempt to solve this problem by solving a simpler problem: can we build an equity tiebreaker that can correctly identify the maximum number of _focal_ students while minimizing the number of _non-focal_ students identified incorrectly.
+
+Given the current legislative and social context of the student assignment process in San Francisco, the San Francisco Unified School District (SFUSD) will only use a student's address to assign the equity tiebreaker. These conditions imply that we have to use geographical units to determine each student's eligibility. For this project, we use the _2010 census track blocks_, or _blocks_ as the smallest geographical unit for the assignment of the equity tiebreaker.
+
+A significant limitation of using blocks as a geographical unit is that, in general, a block has both _focal_ and _non-focal_ students. This mixture of student types means that it is impossible to design an equity tiebreaker that perfectly targets a significant number of _focal_ students without benefiting at least some _non-focal_ students. 
+
+
+
+# Data
+
+| Block       | Block Group | Geoid10 Group | Demographic Data | FRL and AALPI Data | Student Data |
+| ----------- | ----------- | ------------- | ---------------- | ------------------ | ------------ |
+| The Block id is a 15 digit block identificator. This is the smallest geographic unit. | The Block Group id is a 10 digit block identifier that groups multiple blocks. | The Geoid10 Group id was determined by Joseph to group FRL and AALPI Data. It has a one to one correspondence for big block and groups blocks with low counts. | Demographic data at a block level collected from multiple sources. This information is available at a block level. | FRL and AALPI counts at a Geoid10 Group level. This can be used to identify focal students. | Cleaned student data from previous years assignments. This information is available at a student level.|
+
+# Evaluation of Tiebreakers
+
+We are going to consider two methodologies to evaluate different tiebreakers: sample evaluation and counterfactual simulation.
+
+## Sample Evaluation
+
+The sample evaluation consists on comparing the portion of _focal_ students benefited with the equity tiebreaker (true positive rate) with the portion of _non-focal_students_ (false positives).
+
+`TPR = TP / (TP + FN)`
+
+`FNR = FP / (FP + TN)`
+
+## Counterfactual Simulation
+The counterfactual simulation consists of using the school assignment simulation engine to evaluate and compare the average performance of _focal_ students in the school assignment process under the proposed equity tiebreaker. This is what is important after all.
+
+# Methodologies
+
+## CTIP1
+
+A student is labeled as _focal_ if they live in a block that belongs to the first CTIP quintile. This is the baseline.
+
+## Knapsack Problem
+
+We model the process of selecting or labeling the blocks as a Knapsack Problem. The [Knapsack Problem](https://en.wikipedia.org/wiki/Knapsack_problem) is a problem in combinatorial optimization: Given a set of items, each with a weight and a value, determine which items to include in a collection so that the total weight is less than or equal to a given limit, and the total value is as large as possible.
+
+Under this formulation, the items we are trying to select are the blocks, and the values and weights are the numbers of _focal_  and _non-focal_ students in that block, respectively. The limit on the total weight is our tolerance to the total number of _non-focal_ students that obtain the equity tiebreaker. In other words, this limit is the number of false positives (FP) and is equal to the FPR times the total number of _non-focal_ students (N).
+
+We expect the block selection obtained by this method to yield the maximum TPR for a given FPR.
+
+## Conjuction Rules
+
 # Code setup
 __Note__: This code setup is copied from the repo `dssg/hitchhikers-guide`.
 
