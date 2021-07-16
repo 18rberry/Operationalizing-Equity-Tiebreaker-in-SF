@@ -26,8 +26,9 @@ We are going to consider two methodologies to evaluate different tiebreakers: sa
 
 The sample evaluation consists on comparing the portion of _focal_ students benefited with the equity tiebreaker (true positive rate) with the portion of _non-focal_students_ (false positives).
 
-$$TPR = \frac{TP}{TP + FN}$$
-$$FNR = \frac{FP}{FP + TN}$$
+`TPR = TP / (TP + FN)`
+
+`FNR = FP / (FP + TN)`
 
 ## Counterfactual Simulation
 The counterfactual simulation consists of using the school assignment simulation engine to evaluate and compare the average performance of _focal_ students in the school assignment process under the proposed equity tiebreaker. This is what is important after all.
