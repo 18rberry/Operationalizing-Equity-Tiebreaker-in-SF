@@ -1,5 +1,23 @@
 # DSSG 2021 SFUSD Project
 
+# General Objective
+
+The general objective of this project is to build an equity tiebreaker that can correctly identify the maximum number of _focal_ students. It is also important to minimize the number of _non-focal_ students benefited by the equity tiebreaker, i.e., the number of false positives.
+
+Given the current legislative and social context of the student assignment process in San Francisco, the San Francisco Unified School District (SFUSD) will only use a student's address to assign the equity tiebreaker. These conditions imply that we have to use geographical units to determine each student's eligibility. For this project, we use the _2010 census track blocks_, or _blocks_ as the smallest geographical unit for the assignment of the equity tiebreaker.
+
+A significant limitation of using blocks as a geographical unit is that, in general, a block has both _focal_ and _non-focal_ students. This mixture of student types means that it is impossible to design an equity tiebreaker that perfectly targets a significant number of _focal_ students without benefiting at least some _non-focal_ students. 
+
+
+
+# Data
+
+| Block       | Block Group | Geoid10 Group | Demographic Data | FRL and AALPI Data | Student Data |
+| ----------- | ----------- | ------------- | ---------------- | ------------------ | ------------ |
+| The Block id is a 15 digit block identificator. This is the smallest geographic unit. | The Block Group id is a 10 digit block identifier that groups multiple blocks. | The Geoid10 Group id was determined by Joseph to group FRL and AALPI Data. It has a one to one correspondence for big block and groups blocks with low counts. | Demographic data at a block level collected from multiple sources. This information is available at a block level. | FRL and AALPI counts at a Geoid10 Group level. This can be used to identify focal students. | Cleaned student data from previous years assignments. This information is available at a student level.|
+
+
+
 # Code setup
 __Note__: This code setup is copied from the repo `dssg/hitchhikers-guide`.
 
