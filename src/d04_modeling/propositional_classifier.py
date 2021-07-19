@@ -49,19 +49,21 @@ def get_statement(features, operators, comparisors):
 
 def load_map(idx='geoid10'):
     
-    #JUAN: Where is the code that leaves the water grey?
+    
     geodata_path = '/share/data/school_choice/dssg/census2010/'
     file_name = 'geo_export_e77bce0b-6556-4358-b36b-36cfcf826a3c'
     data_types = ['.shp', '.dbf', '.prj', '.shx']
-    sfusd = gpd.read_file(geodata_path + file_name + data_types[0])
+    
+    sfusd_map = gpd.read_file(geodata_path + file_name + data_types[0])
+    sfusd_map["geoid10"] = sfusd_map[idx].astype('int64').apply(lambda x: '0%i' % int(x))
+    sfusd_map.set_index("geoid10", inplace=True)
 
-    mask = sfusd['intptlon10'] < '-122.8'
-    mask &= sfusd['awater10'] == 0.0
+    mask = sfusd_map['intptlon10'] < '-122.8'
+    mask &= sfusd_map['awater10'] == 0.0
     # get rid of water
-
-    sfusd = sfusd.set_index(idx)
-
-    return sfusd
+    sfusd_map = sfusd_map[mask]
+    
+    return sfusd_map
 
 ####################################################################################################
 
@@ -265,17 +267,18 @@ class Propositional_Classifier:
     def display_map(self, data, y_hat, idx='geoid10', ax=None):
         sfusd = load_map()
         
-        sol_df = self.get_sol_df(data, y_hat)
-        sfusd_sol = sfusd.merge(sol_df, left_on='geoid10', right_on='Geoid10')
+        sol_df = self.get_sol_df(data, y_hat).set_index("Geoid10")
+        
+        sfusd = sfusd.assign(tiebreaker=sol_df['tiebreaker']) 
         
         if ax is None:
-            fig, ax = plt.subplots(figsize=(30,30))
+            fig, ax = plt.subplots(figsize=(20,20))
             
-        cmap = mpl.colors.ListedColormap(["yellow", "red"])
+        cmap = "viridis"
         
-        ax = sfusd_sol.plot(column="tiebreaker", ax=ax, cmap=cmap,
-                            legend=False,
-                            missing_kwds={'color': 'lightgrey'})
+        ax = sfusd.plot(column="tiebreaker", ax=ax, cmap=cmap,
+                        legend=False,
+                        missing_kwds={'color': 'lightgrey'})
         
         ax.set_title(self.add_params(self.params), fontsize=50)
         
