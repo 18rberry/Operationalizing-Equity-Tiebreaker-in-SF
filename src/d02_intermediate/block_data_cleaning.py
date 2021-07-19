@@ -1,4 +1,5 @@
 import sys
+import pandas as pd
 sys.path.append('../..')
 
 from src.d01_data.block_data_api import BlockDataApi
@@ -11,6 +12,7 @@ columns_selected = ['2010 total population count',
                     "SFHA_ex_Sr",
                     "num of SBAC L1 scores 4-9 2015-18"]
 
+##1. Functions for preprocessing demographic block data:
 
 def get_empty_cols(block_df, empty_str=["--"]):
     empty_cols = []
@@ -36,3 +38,31 @@ def clean_block_data(block_df, columns=columns_selected):
     clean_df = clean_df.replace({"no": 0, "yes": 1})
     
     return clean_df
+
+##2. Functions for preprocessing FRL/AALPI block data:
+
+def frl_raw_to_pc(frl_df, both_from_count=True):
+    
+    #1. Initialize the new Dataframe:
+    new_df = pd.DataFrame()
+    
+    #2. Clean the Geoid10 to match the map:
+    new_df['Geoid10'] = frl_df['Geoid10'].apply(lambda x: '0%i' % int(x))
+    
+    #3. Load the columns with their simplified names:
+    new_df["COUNT"] = frl_df["4YR AVG Student Count"]
+    new_df["FRL"] = frl_df["4YR AVG FRL Count"]
+    new_df["AALPI"] = frl_df["4YR AVG Eth Flag Count"]
+    new_df["BOTH"] = frl_df["4YR AVG Combo Flag Count"]
+    
+    #4. Add relative columns:
+    new_df["AALPI (%)"] = new_df["AALPI"]/new_df["COUNT"]
+    new_df["FRL (%)"] = new_df["FRL"]/new_df["COUNT"]
+    
+    #Two possible normalizations for the intersection!
+    if both_from_count:
+        new_df["BOTH (%)"] = new_df["AALPI"]/new_df["COUNT"]
+    else:
+        new_df["BOTH (%)"] = new_df["BOTH"]/(new_df["AALPI"] + new_df["FRL"] - new_df["BOTH"])
+    
+    return new_df
