@@ -5,8 +5,8 @@ class CtipClassifier(AbstractBlockClassifier):
     
     def __init__(self, true_group='nFRL', false_group='nOther'):
         super().__init__(true_group, false_group)
-        ctip13 = self.raw_data[['group', 'CTIP13']].groupby('group').agg(get_group_value)
-        self.solution_set = ctip13.index[ctip13['CTIP13'] == 'CTIP1']
+        ctip13 = self.raw_data['CTIP13']
+        self.solution_set = ctip13.index[ctip13 == 'CTIP1'].intersection(self.data.index)
     
     def get_roc(self):
         
