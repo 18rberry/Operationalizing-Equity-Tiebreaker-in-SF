@@ -1,26 +1,26 @@
 from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier
-from src.d04_modeling.knapsack_approx import KnapsackApprox
-    
+
+
 class NaiveClassifier(AbstractBlockClassifier):
-    def __init__(self, true_group='nFRL', false_group='nOther', rate=False):
+    def __init__(self, positive_group='nFRL', negative_group='nOther', rate=False):
         self.rate = rate
-        super().__init__(true_group, false_group)
+        super().__init__(positive_group, negative_group)
         self.results = self.get_results()
         
     def get_results(self):
         results = self.data.copy()
         if self.rate:
-            fun = lambda row: row[self.true_group] / float(row['n'])
+            fun = lambda row: row[self.positive_group] / float(row['n'])
             results['rate'] = results.apply(fun, axis=1, raw=False)
-            results.sort_values(['rate', self.true_group], ascending=False, inplace=True)
+            results.sort_values(['rate', self.positive_group], ascending=False, inplace=True)
         else:
-            results.sort_values(self.true_group, ascending=False, inplace=True)
+            results.sort_values(self.positive_group, ascending=False, inplace=True)
 
-        results['tp'] = results[self.true_group].cumsum()
-        results['fp'] = results[self.false_group].cumsum()
+        results['tp'] = results[self.positive_group].cumsum()
+        results['fp'] = results[self.negative_group].cumsum()
 
-        results['tpr'] = results['tp'] / self.data[self.true_group].sum()
-        results['fpr'] = results['fp'] / self.data[self.false_group].sum()
+        results['tpr'] = results['tp'] / self.data[self.positive_group].sum()
+        results['fpr'] = results['fp'] / self.data[self.negative_group].sum()
         return results
     
     def get_roc(self, fpr=None):        
@@ -30,10 +30,3 @@ class NaiveClassifier(AbstractBlockClassifier):
         
         mask = self.results['fpr'] <= fpr
         return self.results.index[mask]
-        
-        
-
-        
-        
-        
-    
