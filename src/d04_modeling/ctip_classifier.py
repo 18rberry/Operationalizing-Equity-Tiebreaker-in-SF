@@ -10,7 +10,6 @@ class CtipClassifier(AbstractBlockClassifier):
     
     def get_roc(self):
         
-
         results = self.data.loc[self.solution_set].sum().to_frame().T        
         results.rename(columns={self.true_group: 'tp', self.false_group: 'fp' }, inplace=True)
         results['tpr'] = results['tp'] / self.data[self.true_group].sum()
