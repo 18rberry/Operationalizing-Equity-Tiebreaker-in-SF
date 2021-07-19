@@ -4,9 +4,12 @@ sys.path.append('../..')
 from src.d01_data.abstract_data_api import AbstractDataApi
 from collections import defaultdict
 
-_block_sfha_file_path = "Census Blocks w SFHA Flag.xlsx"
-_block_demographic_file_path = "Data/SF 2010 blks 022119 with field descriptions (1).xlsx"
-_block_frl_file_path = "FRL_data.xlsx"
+_block_sfha_file_path = "dssg/block_sfha"
+_block_demographic_file_path = "dssg/block_demo"
+_block_frl_file_path = "dssg/block_frl"
+
+_fields_extension = "_fields.pkl"
+_data_extension = "_data.pkl"
 
 _census_block_column = 'BlockGroup'
 
@@ -47,18 +50,15 @@ class BlockDataApi(AbstractDataApi):
     def load_data(self, sfha=False, frl=False, user=""):
         if sfha:
             if 'data' not in self._cache_sfha.keys():
-                df_dict = self.read_data(_block_sfha_file_path)
-                self._cache_sfha['fields'] = df_dict['Field Descriptions']
-                self._cache_sfha['data'] = df_dict['Block data']
+                self._cache_sfha['fields'] = self.read_data(_block_sfha_file_path + _fields_extension)
+                self._cache_sfha['data'] = self.read_data(_block_sfha_file_path + _data_extension)
         
         elif frl:
-            if "data" not in self._cache_frl.keys():
-                df_dict = self.read_data(_block_frl_file_path, shared=False, user=user)
-                
-                self._cache_frl['fields'] = df_dict['Field Description']
+            if "data" not in self._cache_frl.keys():                
+                self._cache_frl['fields'] = self.read_data(_block_frl_file_path + _fields_extension)
                 
                 #For grouped blocks we need to average the counts:
-                new_df = df_dict['Grouped GeoID External'].copy()
+                new_df = self.read_data(_block_frl_file_path + _data_extension).copy()
 
                 count_df = new_df.groupby(['Geoid Group']).size().to_frame(name="count").reset_index()
                 extended_df = new_df.merge(count_df, on="Geoid Group")
@@ -73,11 +73,9 @@ class BlockDataApi(AbstractDataApi):
                 self._cache_frl['fields'] = self._cache_frl['fields'].dropna(axis=1, how='all')
         
         else:
-            if 'data' not in self._cache_demographic.keys():
-                df_dict = self.read_data(_block_demographic_file_path)
-                
-                self._cache_demographic['fields'] = df_dict['field descriptions']
-                self._cache_demographic['data'] = df_dict['block database']
+            if 'data' not in self._cache_demographic.keys():                
+                self._cache_demographic['fields'] = self.read_data(_block_demographic_file_path + _fields_extension)
+                self._cache_demographic['data'] = self.read_data(_block_demographic_file_path + _data_extension)
                 
                 #Rename columns so that block dataframe and field dataframe match:
                 self._cache_demographic['data'] = self._cache_demographic['data'].rename(columns={"AREA": "Area"})
