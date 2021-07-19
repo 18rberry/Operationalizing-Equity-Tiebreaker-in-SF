@@ -5,3 +5,4 @@
 .ipynb_checkpoints
 dssg-env
 __pycache__
+src/d04_modeling/cache
