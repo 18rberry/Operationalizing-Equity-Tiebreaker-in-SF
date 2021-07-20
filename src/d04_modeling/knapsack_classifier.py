@@ -5,8 +5,16 @@ from src.d04_modeling.knapsack_approx import KnapsackApprox
 
 class KnapsackClassifier(AbstractBlockClassifier):
     
-    def __init__(self, positive_group='nFRL', negative_group='nOther', load=False):
-        super().__init__(positive_group, negative_group)
+    def __init__(self, positive_group='nFRL', negative_group='nOther', load=False, user=""):
+        
+        self.positive_group = positive_group
+        self.negative_group = negative_group
+        
+        columns = [self.positive_group]
+        
+        super().__init__(columns, positive_group=self.positive_group, negative_group=self.negative_group, user=user)
+        
+        #Solving the Knapsack Problem:
         self.solver = KnapsackApprox(eps=.5, data=self.data.copy(),
                                      value_col=positive_group,
                                      weight_col=negative_group,
@@ -18,7 +26,7 @@ class KnapsackClassifier(AbstractBlockClassifier):
             self.solver.solve()
             self.solver.save_value_function()
     
-    def get_roc(self, fpr=None):
+    def get_roc(self, param_arr=None):
         results = self.solver.get_value_per_weight()
         
         results.reset_index(inplace=True)
