@@ -4,9 +4,9 @@ sys.path.append('../..')
 from src.d01_data.abstract_data_api import AbstractDataApi
 from collections import defaultdict
 
-_block_sfha_file_path = "dssg/block_sfha"
-_block_demographic_file_path = "dssg/block_demo"
-_block_frl_file_path = "dssg/block_frl"
+_block_sfha_file_path = "../school_choice_equity/data/block_sfha"
+_block_demographic_file_path = "../school_choice_equity/data/block_demo"
+_block_frl_file_path = "../school_choice_equity/data/block_frl"
 
 _fields_extension = "_fields.pkl"
 _data_extension = "_data.pkl"
