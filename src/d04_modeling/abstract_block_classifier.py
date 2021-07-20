@@ -2,7 +2,7 @@ from src.d02_intermediate.classifier_data_api import ClassifierDataApi, geoid_na
 from src.d00_utils.utils import get_label
 
 classifier_data_api = ClassifierDataApi()
-
+_classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 
 class AbstractBlockClassifier:
     map_data = None
@@ -13,7 +13,7 @@ class AbstractBlockClassifier:
         raw_data = classifier_data_api.get_block_data()
         self.raw_data = raw_data
         
-        data = raw_data[['n', positive_group]].copy()
+        data = raw_data[_classifier_columns].copy()
         data[negative_group] = data['n'] - data[positive_group]
 
         data.dropna(inplace=True)
