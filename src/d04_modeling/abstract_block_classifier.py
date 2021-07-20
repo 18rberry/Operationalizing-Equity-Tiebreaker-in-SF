@@ -3,16 +3,19 @@ from src.d00_utils.utils import get_label
 
 classifier_data_api = ClassifierDataApi()
 
+
 class AbstractBlockClassifier:
     map_data = None
-    def __init__(self, true_group, false_group):
-        self.true_group = true_group
-        self.false_group = false_group
+
+    def __init__(self, positive_group, negative_group):
+        self.positive_group = positive_group
+        self.negative_group = negative_group
         raw_data = classifier_data_api.get_block_data()
         self.raw_data = raw_data
         
-        data = raw_data[['n', true_group]].copy()
-        data[false_group] = data['n'] - data[true_group]
+        data = raw_data[['n', positive_group]].copy()
+        data[negative_group] = data['n'] - data[positive_group]
+
         data.dropna(inplace=True)
         self.data = data.round().astype('int64')
         
@@ -35,15 +38,16 @@ class AbstractBlockClassifier:
         map_df_data = self.map_data.copy()
         
         solution_set = self.get_solution_set(params)
-        map_df_data[self.true_group] = map_df_data.index.to_series().apply(lambda x: get_label(x, solution_set))
+        map_df_data[self.positive_group] = map_df_data.index.to_series().apply(lambda x: get_label(x, solution_set))
         
-        classifier_data_api.plot_map_column(map_df_data=map_df_data, col=self.true_group)
+        classifier_data_api.plot_map_column(map_df_data=map_df_data, col=self.positive_group)
         
     def get_confusion_matrix(self, params):
         data = self.data.copy()
         
         solution_set = self.get_solution_set(params)
-        col = self.true_group + '_label'
+        col = self.positive_group + '_label'
+
         data[col] = 0
         data.loc[solution_set, col] = 1
         
