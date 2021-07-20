@@ -25,27 +25,36 @@ class ClassifierDataApi:
     def __init__(self):
         pass
     
-    def get_block_data(self):
+    def get_block_data(self, load_all=False, user=""):
         if self.block_data is None:
-            e = time()
-            print("Loading Block FRL data...", end="")
-            frl_df = self.get_frl_data()
-            print("%.4f" % (time()-e))
-            e = time()
-            print("Loading Block Demographic data...", end="")
-            demo_df = self.get_demo_data()
-            print("%.4f" % (time()-e))
-            e = time()
-            print("Loading Student Demographic data...", end="")
-            stud_df = self.get_student_data()
-            print("%.4f" % (time()-e))
+            if load_all:
+                e = time()
+                print("Loading Block FRL data...", end="")
+                frl_df = self.get_frl_data(user=user)
+                print("%.4f" % (time()-e))
+                e = time()
+                print("Loading Block Demographic data...", end="")
+                demo_df = self.get_demo_data()
+                print("%.4f" % (time()-e))
+                e = time()
+                print("Loading Student Demographic data...", end="")
+                stud_df = self.get_student_data()
+                print("%.4f" % (time()-e))
 
-            df = pd.concat([demo_df,
-                            stud_df.reindex(demo_df.index),
-                            frl_df.reindex(demo_df.index)],
-                   axis=1,
-                   ignore_index=False)
-            self.block_data = df
+                df = pd.concat([demo_df,
+                                stud_df.reindex(demo_df.index),
+                                frl_df.reindex(demo_df.index)],
+                       axis=1,
+                       ignore_index=False)
+                self.block_data = df
+            else:
+                e = time()
+                print("Loading Block FRL data...", end="")
+                frl_df = self.get_frl_data(user=user)
+                print("%.4f" % (time()-e))
+                
+                self.block_data = frl_df
+                
         
         return self.block_data.copy()
     
@@ -72,8 +81,8 @@ class ClassifierDataApi:
         
         return map_df_data
         
-    def get_frl_data(self):
-        frl_df = block_data_api.get_data(frl=True, user="juan").set_index('Geoid10')
+    def get_frl_data(self,user=""):
+        frl_df = block_data_api.get_data(frl=True, user=user).set_index('Geoid10')
         # print(frl_df)
         frl_df.index.name = geoid_name
         frl_df.columns = ['group', 'n', 'nFRL', 'nAALPI', 'nBoth']
@@ -117,9 +126,12 @@ class ClassifierDataApi:
         return stud_df
     
     @staticmethod
-    def plot_map_column(map_df_data, col, cmap="viridis"):
-
-        fig, ax = plt.subplots(figsize=(30,30))
+    def plot_map_column(map_df_data, col, cmap="viridis", ax=None):
+        
+        save = False
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(30,30))
+            save = True
 
         map_df_data.plot(column=col, ax=ax, cmap=cmap, 
                              legend=True, legend_kwds={'orientation': "horizontal"},
@@ -127,8 +139,12 @@ class ClassifierDataApi:
         ax.set_title(col, fontsize=50)
         plt.tight_layout()
         plt.show()
-        fname = col + '.png'
-        fig.savefig(fname)
+        
+        if save:
+            fname = col + '.png'
+            fig.savefig(fname)
+
+        return ax
         
         
 if __name__ == "__main__":
