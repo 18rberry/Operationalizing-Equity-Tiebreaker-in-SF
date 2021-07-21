@@ -148,7 +148,6 @@ class AbstractBlockClassifier:
         
         if ax is None:
             fig, ax = plt.subplots(figsize=(25,25))
-        map_df_data[self.positive_group] = map_df_data.index.to_series().apply(lambda x: get_label(x, solution_set))
         
         ax = classifier_data_api.plot_map_column(map_df_data=map_df_data, col="tiebreaker", ax=ax)
         return ax
