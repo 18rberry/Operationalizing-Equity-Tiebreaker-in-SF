@@ -1,4 +1,5 @@
 import pandas as pd
+from collections.abc import Iterable
 
 from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier
 
@@ -85,17 +86,26 @@ class PropositionalClassifier(AbstractBlockClassifier):
         """
         returns string ready for evaluation and updates params attribute
         """
-        self.params = params
-        return self.statement.format(*params)
+        if isinstance(params, Iterable):
+            self.params = list(params)
+        else:
+            self.params = [params]
+            
+        return self.statement.format(*self.params)
     
     def get_solution_set(self, params):
         """
         returns pandas.Index with blocks subset for a given parameters list.
         """
+        #Some pre-processing to ensure parameter key is a tuple or a float:
+        if isinstance(params, Iterable):
+            params_key = tuple(params)
+        else:
+            params_key = params
         
         #In case we have already done the predicition for these parameters, look up the dictionary:
-        if tuple(params) in self.prediction_dict:
-            y_hat_idx = self.prediction_dict[tuple(params)]
+        if params_key in self.prediction_dict.keys():
+            y_hat_idx = self.prediction_dict[params_key]
         
         #Otherwise we must do the prediction from scratch:
         else:
@@ -105,7 +115,7 @@ class PropositionalClassifier(AbstractBlockClassifier):
             y_hat_series = self.data.eval(s)
             #Return the index object and add it to the dictionary:
             y_hat_idx = self.data.index[y_hat_series]
-            self.prediction_dict[tuple(params)] = y_hat_idx
+            self.prediction_dict[params_key] = y_hat_idx
             
         return y_hat_idx
         

@@ -4,27 +4,31 @@ import numpy as np
 import pandas as pd
 
 from src.d02_intermediate.classifier_data_api import ClassifierDataApi, geoid_name
-from src.d00_utils.utils import get_label
+from src.d00_utils.utils import get_label, add_percent_columns
 
 classifier_data_api = ClassifierDataApi()
 
 _classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 
-class AbstractBlockClassifier:    
+class AbstractBlockClassifier:
+    map_data = None
+    
     def __init__(self, columns, positive_group="nFocal", negative_group="nOther", user=""):
         
         raw_data = classifier_data_api.get_block_data(user=user)
         self.raw_data = raw_data
         
-        data = raw_data[['n', *columns, 'group']].groupby('group').mean()
-        data.dropna(inplace=True)
-        self.data = data.astype('float64')
+        grouped_data = raw_data.groupby('group').sum()
+        extended_data = add_percent_columns(grouped_data)
+        data = extended_data[['n', *columns]]
+        nonan_data = data.dropna()
+        
+        self.data = nonan_data.astype('float64')
         
         self.positive_group = positive_group
         self.negative_group = negative_group
         self.data[self.negative_group] = self.data['n'] - self.data[self.positive_group]
         
-        self.map_data = None
         # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
         self.prediction_dict = dict()
         self.confusion_dict = dict()
@@ -163,7 +167,6 @@ class AbstractBlockClassifier:
             
         if params_key in self.confusion_dict.keys():
             confusion_matrix = self.confusion_dict[params_key]
-        
         else:
             data = self.data.copy()[[self.positive_group, self.negative_group]]
 
