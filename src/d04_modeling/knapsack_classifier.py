@@ -11,7 +11,8 @@ class KnapsackClassifier(AbstractBlockClassifier):
                          negative_group=negative_group, user=user)
         
         #Solving the Knapsack Problem:
-        self.solver = KnapsackApprox(eps=.5, data=self.data.copy(),
+        data = self.data.round().astype('int64')
+        self.solver = KnapsackApprox(eps=.5, data=data,
                                      value_col=positive_group,
                                      weight_col=negative_group,
                                      scale=False)
