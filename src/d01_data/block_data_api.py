@@ -52,7 +52,6 @@ class BlockDataApi(AbstractDataApi):
         pass
     
     def load_data(self, sfha=False, frl=False, user=None, key=_default_frl_key):
-        print(key)
         if sfha:
             if 'data' not in self._cache_sfha.keys():
                 self._cache_sfha['fields'] = self.read_data(_block_sfha_file_path + _fields_extension)
@@ -60,8 +59,7 @@ class BlockDataApi(AbstractDataApi):
         elif frl:
             if key not in _block_frl_file_path.keys():
                 raise Exception("Missing key for frl data")
-            else:
-                print("Loading %s FRL data" % key)
+            
             if "data" not in self._cache_frl.keys():                
                 self._cache_frl['fields'] = self.read_data(_block_frl_file_path[key] + _fields_extension)
                 
@@ -101,7 +99,7 @@ class BlockDataApi(AbstractDataApi):
         """
         :return:
         """
-        self.load_data(sfha, frl, key)
+        self.load_data(sfha=sfha, frl=frl, key=key)
         if sfha:
             df = self._cache_sfha['data'].copy()
             return df
@@ -116,7 +114,7 @@ class BlockDataApi(AbstractDataApi):
         """
         :return:
         """
-        self.load_data(sfha, frl, key)
+        self.load_data(sfha=sfha, frl=frl, key=key)
         if sfha:
             df = self._cache_sfha['fields'].copy()
             return df
@@ -141,7 +139,7 @@ class BlockDataApi(AbstractDataApi):
     def get_classification(self, classification="first_round"):
         
         if not hasattr(self, "_cache_demographic"):
-            self.load_data(sfha=False)
+            self.load_data()
         
         # parameter referring to classification will allow us to experiment with other classifications.
         # So far only one.
