@@ -88,12 +88,6 @@ class ClassifierDataApi:
         frl_df.columns = ['group', 'n', 'nFRL', 'nAALPI', 'nBoth']
         frl_df['nFocal'] = frl_df.apply(lambda row: row['nFRL'] + row['nAALPI'] - row['nBoth'],
                                         axis=1, raw=False)
-        frl_df['pctFRL'] = frl_df['nFRL'] / frl_df['n']
-        frl_df['pctAALPI'] = frl_df['nAALPI'] / frl_df['n']
-        frl_df['pctBoth'] = frl_df['nBoth'] / frl_df['n']
-        frl_df['pctFocal'] = frl_df['nFocal'] / frl_df['n']
-
-        # TODO: What happens if 'pctBoth' = 'nBoth' / ('nFRL' + 'nAALPI' - 'nBoth')
 
         # we want to find the blocks that share a group index
         mask = frl_df['group'] < 1000
@@ -107,7 +101,7 @@ class ClassifierDataApi:
         frl_df['group'] = frl_df['group'].astype('int64')
         
         return frl_df
-        
+    
     def get_demo_data(self):
         demo_df = block_data_api.get_data().set_index('Block')[['BlockGroup', 'CTIP_2013 assignment']].dropna(subset=['BlockGroup'])
         demo_df.rename(columns={'CTIP_2013 assignment': 'CTIP13'}, inplace=True)
