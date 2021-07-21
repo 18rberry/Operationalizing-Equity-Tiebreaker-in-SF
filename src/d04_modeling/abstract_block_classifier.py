@@ -16,7 +16,6 @@ class AbstractBlockClassifier:
         self.raw_data = raw_data
         
         data = raw_data[['n', *columns, 'group']].groupby('group').mean()
-        
         data.dropna(inplace=True)
         self.data = data.astype('float64')
         
@@ -51,7 +50,7 @@ class AbstractBlockClassifier:
     def plot_roc(self, param_arr, ax=None):
         if ax is None:
             fig, ax = plt.subplots(figsize=(25,25))
-        
+            
         df = self.get_roc(param_arr)
         data_fpr = df["fpr"].values
         data_tpr = df["tpr"].values
@@ -131,9 +130,10 @@ class AbstractBlockClassifier:
         return Axes
     
     def plot_map(self, params, ax=None):
-        """
-        returns ax with mapb of focal blocks for a given parameters list.
-        """
+        '''
+        returns ax with map of focal blocks for a given parameters list.
+        '''
+        
         if self.map_data is None:
             self.map_data = classifier_data_api.get_map_df_data(cols=['group'])
         
@@ -144,9 +144,9 @@ class AbstractBlockClassifier:
         
         if ax is None:
             fig, ax = plt.subplots(figsize=(25,25))
+        map_df_data[self.positive_group] = map_df_data.index.to_series().apply(lambda x: get_label(x, solution_set))
         
         ax = classifier_data_api.plot_map_column(map_df_data=map_df_data, col="tiebreaker", ax=ax)
-        
         return ax
         
     def get_confusion_matrix(self, params):
