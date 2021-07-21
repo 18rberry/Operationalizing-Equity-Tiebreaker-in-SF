@@ -25,7 +25,7 @@ class ClassifierDataApi:
     def __init__(self):
         pass
     
-    def get_block_data(self, load_all=False, user=""):
+    def get_block_data(self, load_all=True, user=""):
         if self.block_data is None:
             if load_all:
                 e = time()
