@@ -1,4 +1,5 @@
 import sys
+import pandas as pd
 sys.path.append('../..')
 
 from src.d01_data.block_data_api import BlockDataApi
@@ -11,6 +12,7 @@ columns_selected = ['2010 total population count',
                     "SFHA_ex_Sr",
                     "num of SBAC L1 scores 4-9 2015-18"]
 
+##1. Functions for preprocessing demographic block data:
 
 def get_empty_cols(block_df, empty_str=["--"]):
     empty_cols = []

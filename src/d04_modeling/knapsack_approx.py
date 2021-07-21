@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from tqdm import trange
 
+_cache_path = '../src/d04_modeling/cache/'
+_default_fname = 'value_function.pkl'
 
 class KnapsackApprox:
     def __init__(self, eps, data: pd.DataFrame, value_col, weight_col, scale=True):
@@ -80,6 +82,27 @@ class KnapsackApprox:
             i -= 1
 
         return v_opt, solution_set
+    
+    def get_value_per_weight(self):
+        solution_weights = self.value_function[-1][:]
+        results = pd.Series(solution_weights, name='weights')
+        results.index.name = 'values'
+        results = results.to_frame().reset_index()
+        
+        return results.groupby('weights').max()
+    
+    def save_value_function(self, fname=None):
+        if fname is None:
+            pd.DataFrame(self.value_function).to_pickle(_cache_path + _default_fname)
+        else:
+            pd.DataFrame(self.value_function).to_pickle(_cache_path + fname)
+            
+    def load_value_function(self, fname=None):
+        if fname is None:
+            df = pd.read_pickle(_cache_path + _default_fname)
+        else:
+            df = pd.read_pickle(_cache_path + fname)
+        self.value_function = df.values
 
 
 if __name__ == "__main__":

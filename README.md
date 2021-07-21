@@ -35,6 +35,10 @@ The counterfactual simulation consists of using the school assignment simulation
 
 # Methodologies
 
+## Naive
+
+Order the blocks by how many focal students they have. We consider two orderings, by absolute number of students and by relative number of students (`rate=True`). By relative number of students we mean the proportion of focal students within the block.
+
 ## CTIP1
 
 A student is labeled as _focal_ if they live in a block that belongs to the first CTIP quintile. This is the baseline.
