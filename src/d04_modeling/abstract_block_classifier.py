@@ -10,12 +10,7 @@ classifier_data_api = ClassifierDataApi()
 
 _classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 
-class AbstractBlockClassifier:
-    map_data = None
-    # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
-    prediction_dict = dict()
-    confusion_dict = dict()
-    
+class AbstractBlockClassifier:    
     def __init__(self, columns, positive_group="nFocal", negative_group="nOther", user=""):
         
         raw_data = classifier_data_api.get_block_data(user=user)
@@ -27,7 +22,12 @@ class AbstractBlockClassifier:
         
         self.positive_group = positive_group
         self.negative_group = negative_group
-        self.data[self.negative_group] = self.data['n'] - self.data[self.positive_group]        
+        self.data[self.negative_group] = self.data['n'] - self.data[self.positive_group]
+        
+        self.map_data = None
+        # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
+        self.prediction_dict = dict()
+        self.confusion_dict = dict()
         
     def get_solution_set(self, params):
         """
@@ -160,6 +160,7 @@ class AbstractBlockClassifier:
             params_key = tuple(params)
         else:
             params_key = params
+            
         if params_key in self.confusion_dict.keys():
             confusion_matrix = self.confusion_dict[params_key]
         
