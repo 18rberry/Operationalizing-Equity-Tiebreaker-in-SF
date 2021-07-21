@@ -3,7 +3,7 @@ from collections.abc import Iterable
 import numpy as np
 import pandas as pd
 
-from src.d02_intermediate.classifier_data_api import ClassifierDataApi, geoid_name
+from src.d02_intermediate.classifier_data_api import ClassifierDataApi, geoid_name, _default_frl_key
 from src.d00_utils.utils import get_label, add_percent_columns
 
 classifier_data_api = ClassifierDataApi()
@@ -13,9 +13,8 @@ _classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 class AbstractBlockClassifier:
     map_data = None
     
-    def __init__(self, columns, positive_group="nFocal", negative_group="nOther", user=""):
-        
-        raw_data = classifier_data_api.get_block_data(user=user)
+    def __init__(self, columns, positive_group="nFocal", negative_group="nOther", key=_default_frl_key):
+        raw_data = classifier_data_api.get_block_data(key=key)
         self.raw_data = raw_data
         
         grouped_data = raw_data.groupby('group').sum()

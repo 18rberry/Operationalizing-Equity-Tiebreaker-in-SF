@@ -1,13 +1,13 @@
 from src.d00_utils.utils import get_group_value
-from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier
+from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier, _default_frl_key
 
     
 class CtipClassifier(AbstractBlockClassifier):
     
-    def __init__(self, positive_group='nFRL', negative_group='nOther', user=""):
+    def __init__(self, positive_group='nFRL', negative_group='nOther', key=_default_frl_key):
         columns = [positive_group]
         super().__init__(columns=columns, positive_group=positive_group, 
-                         negative_group=negative_group, user=user)
+                         negative_group=negative_group, key=key)
         ctip13 = self.raw_data[['CTIP13', 'group']].groupby('group').agg(get_group_value)
         self.solution_set = ctip13.index[ctip13['CTIP13'] == 'CTIP1'].intersection(self.data.index)
     

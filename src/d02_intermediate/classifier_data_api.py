@@ -4,7 +4,7 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from time import time
 
-from src.d01_data.block_data_api import BlockDataApi
+from src.d01_data.block_data_api import BlockDataApi, _default_frl_key
 from src.d01_data.student_data_api import StudentDataApi, _block_features, _census_block_column, \
 _diversity_index_features
 
@@ -25,36 +25,28 @@ class ClassifierDataApi:
     def __init__(self):
         pass
     
-    def get_block_data(self, load_all=True, user=""):
+    def get_block_data(self, key=_default_frl_key):
+        print(key)
         if self.block_data is None:
-            if load_all:
-                e = time()
-                print("Loading Block FRL data...", end="")
-                frl_df = self.get_frl_data(user=user)
-                print("%.4f" % (time()-e))
-                e = time()
-                print("Loading Block Demographic data...", end="")
-                demo_df = self.get_demo_data()
-                print("%.4f" % (time()-e))
-                e = time()
-                print("Loading Student Demographic data...", end="")
-                stud_df = self.get_student_data()
-                print("%.4f" % (time()-e))
+            e = time()
+            print("Loading Block FRL data...", end="")
+            frl_df = self.get_frl_data(key=key)
+            print("%.4f" % (time()-e))
+            e = time()
+            print("Loading Block Demographic data...", end="")
+            demo_df = self.get_demo_data()
+            print("%.4f" % (time()-e))
+            e = time()
+            print("Loading Student Demographic data...", end="")
+            stud_df = self.get_student_data()
+            print("%.4f" % (time()-e))
 
-                df = pd.concat([demo_df,
+            df = pd.concat([demo_df,
                                 stud_df.reindex(demo_df.index),
                                 frl_df.reindex(demo_df.index)],
                        axis=1,
                        ignore_index=False)
-                self.block_data = df
-            else:
-                e = time()
-                print("Loading Block FRL data...", end="")
-                frl_df = self.get_frl_data(user=user)
-                print("%.4f" % (time()-e))
-                
-                self.block_data = frl_df
-                
+            self.block_data = df                
         
         return self.block_data.copy()
     
@@ -81,8 +73,8 @@ class ClassifierDataApi:
         
         return map_df_data
         
-    def get_frl_data(self,user=""):
-        frl_df = block_data_api.get_data(frl=True, user=user).set_index('Geoid10')
+    def get_frl_data(self, key=_default_frl_key):
+        frl_df = block_data_api.get_data(frl=True, key=key).set_index('Geoid10')
         # print(frl_df)
         frl_df.index.name = geoid_name
         frl_df.columns = ['group', 'n', 'nFRL', 'nAALPI', 'nBoth']

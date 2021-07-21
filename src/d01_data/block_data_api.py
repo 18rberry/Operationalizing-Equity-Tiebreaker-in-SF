@@ -6,7 +6,8 @@ from collections import defaultdict
 
 _block_sfha_file_path = "../school_choice_equity/data/block_sfha"
 _block_demographic_file_path = "../school_choice_equity/data/block_demo"
-_block_frl_file_path = "../school_choice_equity/data/block_frl"
+_block_frl_file_path = {'tk5': "../school_choice_equity/data/block_frl_tk5",
+                        'tk12':"../school_choice_equity/data/block_frl_tk5"}
 
 _fields_extension = "_fields.pkl"
 _data_extension = "_data.pkl"
@@ -30,6 +31,8 @@ _acs_columns = ['ACS 2013-17 est median HH income',
  'ACS 2013-17 est% of foreign born not czn',
  'ACS 2013-17 est% hsng units owner occ']
 
+_default_frl_key =  'tk12'
+
 class BlockDataApi(AbstractDataApi):
     """
     This class does the ETL work for the Census Block data. There are three types of Census Block data:
@@ -47,18 +50,23 @@ class BlockDataApi(AbstractDataApi):
         super().__init__()
         pass
     
-    def load_data(self, sfha=False, frl=False, user=""):
+    def load_data(self, sfha=False, frl=False, user=None, key=_default_frl_key):
+        print(key)
         if sfha:
             if 'data' not in self._cache_sfha.keys():
                 self._cache_sfha['fields'] = self.read_data(_block_sfha_file_path + _fields_extension)
                 self._cache_sfha['data'] = self.read_data(_block_sfha_file_path + _data_extension)
         
         elif frl:
+            if key not in _block_frl_file_path.keys():
+                raise Exception("Missing key for frl data")
+            else:
+                print("Loading %s FRL data" % key)
             if "data" not in self._cache_frl.keys():                
-                self._cache_frl['fields'] = self.read_data(_block_frl_file_path + _fields_extension)
+                self._cache_frl['fields'] = self.read_data(_block_frl_file_path[key] + _fields_extension)
                 
                 #For grouped blocks we need to average the counts:
-                new_df = self.read_data(_block_frl_file_path + _data_extension).copy()
+                new_df = self.read_data(_block_frl_file_path[key] + _data_extension).copy()
 
                 count_df = new_df.groupby(['Geoid Group']).size().to_frame(name="count").reset_index()
                 extended_df = new_df.merge(count_df, on="Geoid Group")
@@ -88,11 +96,11 @@ class BlockDataApi(AbstractDataApi):
                 self._cache_demographic['fields'] = self._cache_demographic['fields'].dropna(axis=0, how='all')
                 self._cache_demographic['fields'] = self._cache_demographic['fields'].dropna(axis=1, how='all')
 
-    def get_data(self, sfha=False, frl=False, user=""):
+    def get_data(self, sfha=False, frl=False, key=_default_frl_key):
         """
         :return:
         """
-        self.load_data(sfha, frl, user)
+        self.load_data(sfha, frl, key)
         if sfha:
             df = self._cache_sfha['data'].copy()
             return df
@@ -103,11 +111,11 @@ class BlockDataApi(AbstractDataApi):
             df = self._cache_demographic['data'].copy()
             return df
         
-    def get_fields(self, sfha=False, frl=False, user=""):
+    def get_fields(self, sfha=False, frl=False, key=_default_frl_key):
         """
         :return:
         """
-        self.load_data(sfha, frl, user)
+        self.load_data(sfha, frl, key)
         if sfha:
             df = self._cache_sfha['fields'].copy()
             return df
