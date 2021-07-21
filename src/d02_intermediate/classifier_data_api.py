@@ -26,7 +26,6 @@ class ClassifierDataApi:
         pass
     
     def get_block_data(self, key=_default_frl_key):
-        print(key)
         if self.block_data is None:
             e = time()
             print("Loading Block FRL data...", end="")
@@ -42,10 +41,10 @@ class ClassifierDataApi:
             print("%.4f" % (time()-e))
 
             df = pd.concat([demo_df,
-                                stud_df.reindex(demo_df.index),
-                                frl_df.reindex(demo_df.index)],
-                       axis=1,
-                       ignore_index=False)
+                            stud_df.reindex(demo_df.index),
+                            frl_df.reindex(demo_df.index)],
+                           axis=1,
+                           ignore_index=False)
             self.block_data = df                
         
         return self.block_data.copy()
@@ -95,7 +94,8 @@ class ClassifierDataApi:
         return frl_df
     
     def get_demo_data(self):
-        demo_df = block_data_api.get_data().set_index('Block')[['BlockGroup', 'CTIP_2013 assignment']].dropna(subset=['BlockGroup'])
+        demo_df = block_data_api.get_data().set_index('Block')[['BlockGroup',
+                                                                'CTIP_2013 assignment']].dropna(subset=['BlockGroup'])
         demo_df.rename(columns={'CTIP_2013 assignment': 'CTIP13'}, inplace=True)
         demo_df.index.name = geoid_name
         

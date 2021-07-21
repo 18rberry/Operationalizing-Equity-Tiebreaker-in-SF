@@ -1,4 +1,4 @@
-from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier, _classifier_columns, _default_frl_key
+from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier, _default_frl_key
 
 
 class NaiveClassifier(AbstractBlockClassifier):
@@ -8,7 +8,7 @@ class NaiveClassifier(AbstractBlockClassifier):
         super().__init__(columns=columns, positive_group=positive_group, 
                          negative_group=negative_group, key=key)
         
-        #Solving the naive classification problem:
+        # Solving the naive classification problem:
         self.rate = rate
         self.results = self.get_results()
         
