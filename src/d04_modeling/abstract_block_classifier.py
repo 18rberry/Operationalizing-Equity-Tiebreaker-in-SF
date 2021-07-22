@@ -3,19 +3,20 @@ from collections.abc import Iterable
 import numpy as np
 import pandas as pd
 
-from src.d02_intermediate.classifier_data_api import ClassifierDataApi, geoid_name
+from src.d02_intermediate.classifier_data_api import ClassifierDataApi, geoid_name, _default_frl_key
 from src.d00_utils.utils import get_label, add_percent_columns
-
-classifier_data_api = ClassifierDataApi()
 
 _classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 
+
 class AbstractBlockClassifier:
     map_data = None
+    __classifier_data_api = ClassifierDataApi()
     
-    def __init__(self, columns, positive_group="nFocal", negative_group="nOther", user=""):
-        
-        raw_data = classifier_data_api.get_block_data(user=user)
+    def __init__(self, columns, positive_group="nFocal", negative_group="nOther",
+                 user=None, frl_key=_default_frl_key):
+        raw_data = self.__classifier_data_api.get_block_data(frl_key=frl_key)
+
         self.raw_data = raw_data
         
         grouped_data = raw_data.groupby('group').sum()
@@ -32,7 +33,10 @@ class AbstractBlockClassifier:
         # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
         self.prediction_dict = dict()
         self.confusion_dict = dict()
-        
+    
+    def refresh(self):
+        self.__classifier_data_api.refresh()
+    
     def get_solution_set(self, params):
         """
         returns pandas.Index with blocks subset for a given parameters list.
@@ -79,13 +83,13 @@ class AbstractBlockClassifier:
         returns tuple of numpy.Array with 'fpr' and 'fnr' rates respectively, each row and column 
         corresponds to a parameter in the param array.
         """
-        #In case we did not specify values for second parameter, use the same as first:
+        # In case we did not specify values for second parameter, use the same as first:
         if param_arr2 is None:
             param_arr2 = param_arr1
         
         heat_fpr = []
         heat_fnr = []
-        #Iterate over all pairwise parameters:
+        # Iterate over all pairwise parameters:
         for param1 in param_arr1:
             row_fpr = []
             row_fnr = []
@@ -96,7 +100,7 @@ class AbstractBlockClassifier:
             heat_fpr.append(row_fpr)
             heat_fnr.append(row_fnr)
         
-        #Build array by reversing the row order:
+        # Build array by reversing the row order:
         heat_fpr = np.flipud(np.array(heat_fpr))
         heat_fnr = np.flipud(np.array(heat_fnr))            
                 
@@ -143,7 +147,7 @@ class AbstractBlockClassifier:
         """
         
         if self.map_data is None:
-            self.map_data = classifier_data_api.get_map_df_data(cols=['group'])
+            self.map_data = self.__classifier_data_api.get_map_df_data(cols=['group'])
         
         map_df_data = self.map_data.copy()
         
@@ -153,7 +157,7 @@ class AbstractBlockClassifier:
         if ax is None:
             fig, ax = plt.subplots(figsize=(25,25))
         
-        ax = classifier_data_api.plot_map_column(map_df_data=map_df_data, col="tiebreaker", ax=ax)
+        ax = self.__classifier_data_api.plot_map_column(map_df_data=map_df_data, col="tiebreaker", ax=ax)
         return ax
         
     def get_confusion_matrix(self, params):
