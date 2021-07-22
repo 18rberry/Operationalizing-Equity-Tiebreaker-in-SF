@@ -9,12 +9,13 @@ from src.d00_utils.utils import get_label, add_percent_columns
 _classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 
 
-class AbstractBlockClassifier():
+class AbstractBlockClassifier:
     map_data = None
     __classifier_data_api = ClassifierDataApi()
     
-    def __init__(self, columns, positive_group="nFocal", negative_group="nOther", key=_default_frl_key):
-        raw_data = self.__classifier_data_api.get_block_data(key=key)
+    def __init__(self, columns, positive_group="nFocal", negative_group="nOther",
+                 user=None, frl_key=_default_frl_key):
+        raw_data = self.__classifier_data_api.get_block_data(frl_key=frl_key)
         self.raw_data = raw_data
         
         grouped_data = raw_data.groupby('group').sum()
@@ -81,13 +82,13 @@ class AbstractBlockClassifier():
         returns tuple of numpy.Array with 'fpr' and 'fnr' rates respectively, each row and column 
         corresponds to a parameter in the param array.
         """
-        #In case we did not specify values for second parameter, use the same as first:
+        # In case we did not specify values for second parameter, use the same as first:
         if param_arr2 is None:
             param_arr2 = param_arr1
         
         heat_fpr = []
         heat_fnr = []
-        #Iterate over all pairwise parameters:
+        # Iterate over all pairwise parameters:
         for param1 in param_arr1:
             row_fpr = []
             row_fnr = []
@@ -98,7 +99,7 @@ class AbstractBlockClassifier():
             heat_fpr.append(row_fpr)
             heat_fnr.append(row_fnr)
         
-        #Build array by reversing the row order:
+        # Build array by reversing the row order:
         heat_fpr = np.flipud(np.array(heat_fpr))
         heat_fnr = np.flipud(np.array(heat_fnr))            
                 

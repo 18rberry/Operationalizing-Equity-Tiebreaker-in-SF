@@ -26,13 +26,13 @@ class ClassifierDataApi:
         pass
     
     def refresh(self):
-        self.block_data = None
+        self.__block_data = None
     
-    def get_block_data(self, key=_default_frl_key):
-        if self.block_data is None:
+    def get_block_data(self, frl_key=_default_frl_key):
+        if self.__block_data is None:
             e = time()
             print("Loading Block FRL data...", end="")
-            frl_df = self.get_frl_data(key=key)
+            frl_df = self.get_frl_data(frl_key=frl_key)
             print("%.4f" % (time()-e))
             e = time()
             print("Loading Block Demographic data...", end="")
@@ -48,12 +48,12 @@ class ClassifierDataApi:
                             frl_df.reindex(demo_df.index)],
                            axis=1,
                            ignore_index=False)
-            self.block_data = df                
+            self.__block_data = df
         
-        return self.block_data.copy()
+        return self.__block_data.copy()
     
     def get_map_data(self):       
-        if self.map_data is None:
+        if self.__map_data is None:
             geodata_path = '/share/data/school_choice/dssg/census2010/'
             file_name = 'geo_export_e77bce0b-6556-4358-b36b-36cfcf826a3c'
             data_types = ['.shp', '.dbf', '.prj', '.shx']
@@ -62,9 +62,9 @@ class ClassifierDataApi:
             sfusd_map[geoid_name] = sfusd_map['geoid10'].astype('int64')
             sfusd_map.set_index(geoid_name, inplace=True)
             
-            self.map_data = sfusd_map.copy()
+            self.__map_data = sfusd_map.copy()
             
-        return self.map_data.copy()
+        return self.__map_data.copy()
     
     def get_map_df_data(self, cols):
         block_data = self.get_block_data()
@@ -74,9 +74,10 @@ class ClassifierDataApi:
                                 axis=1, ignore_index=False)
         
         return map_df_data
-        
-    def get_frl_data(self, key=_default_frl_key):
-        frl_df = block_data_api.get_data(frl=True, key=key).set_index('Geoid10')
+
+    @staticmethod
+    def get_frl_data(frl_key=_default_frl_key):
+        frl_df = block_data_api.get_data(frl=True, frl_key=frl_key).set_index('Geoid10')
         # print(frl_df)
         frl_df.index.name = geoid_name
         frl_df.columns = ['group', 'n', 'nFRL', 'nAALPI', 'nBoth']
@@ -95,16 +96,18 @@ class ClassifierDataApi:
         frl_df['group'] = frl_df['group'].astype('int64')
         
         return frl_df
-    
-    def get_demo_data(self):
+
+    @staticmethod
+    def get_demo_data():
         demo_df = block_data_api.get_data().set_index('Block')[['BlockGroup',
                                                                 'CTIP_2013 assignment']].dropna(subset=['BlockGroup'])
         demo_df.rename(columns={'CTIP_2013 assignment': 'CTIP13'}, inplace=True)
         demo_df.index.name = geoid_name
         
         return demo_df
-    
-    def get_student_data(self):
+
+    @staticmethod
+    def get_student_data():
         df_students = student_data_api.get_data(periods_list)
         mask = df_students[_census_block_column] == 'NaN'
         df_students.drop(df_students.index[mask], inplace=True)
@@ -115,9 +118,8 @@ class ClassifierDataApi:
         return stud_df
     
     @staticmethod
-    def plot_map_column(map_df_data, col, cmap="viridis", ax=None):
-        
-        save = False
+    def plot_map_column(map_df_data, col, cmap="viridis", ax=None, save=False, fig=None):
+
         if ax is None:
             fig, ax = plt.subplots(figsize=(30,30))
             save = True

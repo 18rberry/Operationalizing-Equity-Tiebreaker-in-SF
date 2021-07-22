@@ -5,13 +5,13 @@ from src.d04_modeling.knapsack_approx import KnapsackApprox
 
 class KnapsackClassifier(AbstractBlockClassifier):
     
-    def __init__(self, positive_group='nFRL', negative_group='nOther', load=False, key=_default_frl_key,
-                run_name=None):
+    def __init__(self, positive_group='nFRL', negative_group='nOther', load=False, frl_key=_default_frl_key,
+                 run_name=None):
         columns = [positive_group]
-        super().__init__(columns=columns, positive_group=positive_group, 
-                         negative_group=negative_group, key=key)
+        super().__init__(columns=columns, positive_group=positive_group,
+                         negative_group=negative_group, frl_key=frl_key)
         
-        #Solving the Knapsack Problem:
+        # Solving the Knapsack Problem:
         data = self.data.round().astype('int64')
         self.solver = KnapsackApprox(eps=.5, data=data,
                                      value_col=positive_group,
@@ -49,5 +49,5 @@ if __name__ == "__main__":
     
     fpr = 0.1
 
-    print(model.get_confusion_matrix(fpr=fpr))
-    model.plot_map(fpr=fpr)
+    print(model.get_confusion_matrix(params=fpr))
+    model.plot_map(params=fpr)
