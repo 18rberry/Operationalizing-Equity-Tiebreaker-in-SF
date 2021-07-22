@@ -145,7 +145,7 @@ class AbstractBlockClassifier():
         """
         
         if self.map_data is None:
-            self.map_data = classifier_data_api.get_map_df_data(cols=['group'])
+            self.map_data = self.__classifier_data_api.get_map_df_data(cols=['group'])
         
         map_df_data = self.map_data.copy()
         
@@ -155,7 +155,7 @@ class AbstractBlockClassifier():
         if ax is None:
             fig, ax = plt.subplots(figsize=(25,25))
         
-        ax = classifier_data_api.plot_map_column(map_df_data=map_df_data, col="tiebreaker", ax=ax)
+        ax = self.__classifier_data_api.plot_map_column(map_df_data=map_df_data, col="tiebreaker", ax=ax)
         return ax
         
     def get_confusion_matrix(self, params):

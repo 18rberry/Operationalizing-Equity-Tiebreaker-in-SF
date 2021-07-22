@@ -19,8 +19,8 @@ student_data_api = StudentDataApi()
 
 
 class ClassifierDataApi:
-    block_data = None
-    map_data = None
+    __block_data = None
+    __map_data = None
     
     def __init__(self):
         pass
