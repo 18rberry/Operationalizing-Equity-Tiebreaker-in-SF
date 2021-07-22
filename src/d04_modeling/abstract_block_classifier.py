@@ -13,8 +13,8 @@ class AbstractBlockClassifier():
     map_data = None
     __classifier_data_api = ClassifierDataApi()
     
-    def __init__(self, columns, positive_group="nFocal", negative_group="nOther", key=_default_frl_key):
-        raw_data = self.__classifier_data_api.get_block_data(key=key)
+    def __init__(self, columns, positive_group="nFocal", negative_group="nOther", frl_key=_default_frl_key):
+        raw_data = self.__classifier_data_api.get_block_data(frl_key=frl_key)
         self.raw_data = raw_data
         
         grouped_data = raw_data.groupby('group').sum()
