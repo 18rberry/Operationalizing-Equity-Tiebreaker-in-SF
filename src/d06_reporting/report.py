@@ -62,7 +62,7 @@ class Report:
             ax.plot(results['fpr'], results['tpr'], label=model_name, linewidth=lw,
                     marker=marker, markersize=12)
         ax.set_ylabel('TPR')
-        ax.set_ylabel('FPR')
+        ax.set_xlabel('FPR')
         ax.legend()
         plt.tight_layout()
         plt.savefig('outputs/roc_results_%s.png' % frl_key)
