@@ -48,6 +48,7 @@ class ClassifierDataApi:
                             frl_df.reindex(demo_df.index)],
                            axis=1,
                            ignore_index=False)
+            
             self.__block_data = df
         
         return self.__block_data.copy()

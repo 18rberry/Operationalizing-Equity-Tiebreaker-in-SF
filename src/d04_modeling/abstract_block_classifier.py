@@ -16,6 +16,7 @@ class AbstractBlockClassifier:
     def __init__(self, columns, positive_group="nFocal", negative_group="nOther",
                  user=None, frl_key=_default_frl_key):
         raw_data = self.__classifier_data_api.get_block_data(frl_key=frl_key)
+
         self.raw_data = raw_data
         
         grouped_data = raw_data.groupby('group').sum()
