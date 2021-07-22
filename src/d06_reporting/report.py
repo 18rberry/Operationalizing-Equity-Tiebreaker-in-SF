@@ -19,7 +19,13 @@ from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier
 class Report:
     
     @staticmethod
-    def classifier_evalutaion_roc(frl_key):
+    def classifier_evalutaion_roc(frl_key, propositional_params=None, propositional_structure=None):
+        if propositional_structure is None:
+            propositional_structure = {'variables': [("pctAALPI", "pctFRL"), "pctBoth"],
+                                    'logic': ["and", "or"]}
+        if propositional_params is None:
+            propositional_params = [[0.5, 0.6, x] for x in np.linspace(0, 1, num=100)]
+                    
         AbstractBlockClassifier().refresh()
         model_dict = OrderedDict()
         model_dict['Naive'] = {'model': NaiveClassifier(positive_group='nFocal', rate=False, frl_key=frl_key),
@@ -32,9 +38,11 @@ class Report:
         model_dict['Knapsack'] = {'model': KnapsackClassifier(positive_group='nFocal', load=True,
                                                               frl_key=frl_key, run_name=frl_key+".pkl"),
                                   'params': None}
-        model_dict['Propositional'] = {'model': PropositionalClassifier([("pctAALPI", "pctFRL"), "pctBoth"],
-                                                                        ["and", "or"], frl_key=frl_key),
-                                       'params': [[0.5, 0.6, x] for x in np.linspace(0, 1, num=100)]}
+        model_dict['Propositional'] = {'model': PropositionalClassifier(propositional_structure['variables'],
+                                                                        propositional_structure['logic'],
+                                                                        frl_key=frl_key),
+                                       'params': propositional_params}
+        print("Propositional Statement:\n%s" % model_dict['Propositional']['model'].statement)
 
         results_dict = OrderedDict()
         for model_name, model in model_dict.items():
@@ -54,8 +62,9 @@ class Report:
             ax.plot(results['fpr'], results['tpr'], label=model_name, linewidth=lw,
                     marker=marker, markersize=12)
         ax.set_ylabel('TPR')
+        ax.set_ylabel('FPR')
         ax.legend()
         plt.tight_layout()
-        plt.savefig('outputs/roc_results.png')
+        plt.savefig('outputs/roc_results_%s.png' % frl_key)
         plt.show()
         
