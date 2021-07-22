@@ -6,15 +6,15 @@ import pandas as pd
 from src.d02_intermediate.classifier_data_api import ClassifierDataApi, geoid_name, _default_frl_key
 from src.d00_utils.utils import get_label, add_percent_columns
 
-classifier_data_api = ClassifierDataApi()
-
 _classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 
-class AbstractBlockClassifier:
+
+class AbstractBlockClassifier():
     map_data = None
+    __classifier_data_api = ClassifierDataApi()
     
     def __init__(self, columns, positive_group="nFocal", negative_group="nOther", key=_default_frl_key):
-        raw_data = classifier_data_api.get_block_data(key=key)
+        raw_data = self.__classifier_data_api.get_block_data(key=key)
         self.raw_data = raw_data
         
         grouped_data = raw_data.groupby('group').sum()
@@ -31,7 +31,10 @@ class AbstractBlockClassifier:
         # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
         self.prediction_dict = dict()
         self.confusion_dict = dict()
-        
+    
+    def refresh(self):
+        self.__classifier_data_api.refresh()
+    
     def get_solution_set(self, params):
         """
         returns pandas.Index with blocks subset for a given parameters list.

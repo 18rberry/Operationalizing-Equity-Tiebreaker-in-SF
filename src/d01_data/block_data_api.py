@@ -43,13 +43,11 @@ class BlockDataApi(AbstractDataApi):
     - FRL: Block level data on counts of focal students. Blocks with less than 5 students have been
     aggregated into block groups to avoid re-identifiability.
     """
-    _cache_sfha = dict()
-    _cache_frl = dict()
-    _cache_demographic = dict()
-
     def __init__(self):
         super().__init__()
-        pass
+        self._cache_sfha = dict()
+        self._cache_frl = defaultdict(lambda: dict())
+        self._cache_demographic = dict()
     
     def load_data(self, sfha=False, frl=False, user=None, key=_default_frl_key):
         if sfha:
@@ -61,22 +59,23 @@ class BlockDataApi(AbstractDataApi):
                 raise Exception("Missing key for frl data")
             
             if "data" not in self._cache_frl.keys():                
-                self._cache_frl['fields'] = self.read_data(_block_frl_file_path[key] + _fields_extension)
+                df_field = self.read_data(_block_frl_file_path[key] + _fields_extension)
                 
                 # For grouped blocks we need to average the counts:
-                new_df = self.read_data(_block_frl_file_path[key] + _data_extension).copy()
+                df_data = self.read_data(_block_frl_file_path[key] + _data_extension).copy()
 
-                count_df = new_df.groupby(['Geoid Group']).size().to_frame(name="count").reset_index()
-                extended_df = new_df.merge(count_df, on="Geoid Group")
+                count_df = df_data.groupby(['Geoid Group']).size().to_frame(name="count").reset_index()
+                extended_df = df_data.merge(count_df, on="Geoid Group")
     
-                for col in list(new_df.columns)[2:]:
-                    new_df[col] = extended_df[col]/extended_df["count"]
+                for col in list(df_data.columns)[2:]:
+                    df_data[col] = extended_df[col]/extended_df["count"]
                 
-                self._cache_frl['data'] = new_df
+                self._cache_frl[key]['data'] = df_data
 
                 # Clean the Fields dataframe from NaN columns and rows:
-                self._cache_frl['fields'] = self._cache_frl['fields'].dropna(axis=0, how='all')
-                self._cache_frl['fields'] = self._cache_frl['fields'].dropna(axis=1, how='all')
+                df_field.dropna(axis=0, how='all', inplace=True)
+                df_field.dropna(axis=1, how='all', inplace=True)
+                self._cache_frl[key]['fields'] = df_field
         
         else:
             if 'data' not in self._cache_demographic.keys():                
@@ -104,7 +103,7 @@ class BlockDataApi(AbstractDataApi):
             df = self._cache_sfha['data'].copy()
             return df
         elif frl:
-            df = self._cache_frl['data'].copy()
+            df = self._cache_frl[key]['data'].copy()
             return df
         else:
             df = self._cache_demographic['data'].copy()
@@ -119,7 +118,7 @@ class BlockDataApi(AbstractDataApi):
             df = self._cache_sfha['fields'].copy()
             return df
         elif frl:
-            df = self._cache_frl['fields'].copy()
+            df = self._cache_frl[key]['fields'].copy()
             return df
         else:
             df = self._cache_demographic['fields'].copy()

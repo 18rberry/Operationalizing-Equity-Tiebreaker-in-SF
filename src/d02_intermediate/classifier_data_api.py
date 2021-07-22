@@ -25,6 +25,9 @@ class ClassifierDataApi:
     def __init__(self):
         pass
     
+    def refresh(self):
+        self.block_data = None
+    
     def get_block_data(self, key=_default_frl_key):
         if self.block_data is None:
             e = time()
