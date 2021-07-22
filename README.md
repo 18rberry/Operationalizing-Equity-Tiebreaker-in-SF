@@ -51,7 +51,7 @@ Under this formulation, the items we are trying to select are the blocks, and th
 
 We expect the block selection obtained by this method to yield the maximum TPR for a given FPR.
 
-## Conjuction Rules
+## Propositions
 
 # Code setup
 __Note__: This code setup is copied from the repo `dssg/hitchhikers-guide`.
