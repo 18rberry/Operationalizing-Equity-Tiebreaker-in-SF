@@ -40,8 +40,6 @@ class AbstractDataApi:
             file_type = file_name.split(".")[-1]
             path = _out_file_path + user + "_" + file_name
 
-        print(path)
-        
         if file_type == "csv":
             return self.read_csv(path)
         elif file_type == "dta":
