@@ -3,10 +3,10 @@ from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier, 
 
 class NaiveClassifier(AbstractBlockClassifier):
     def __init__(self, positive_group='nFRL',
-                 negative_group='nOther', rate=False, frl_key=_default_frl_key):
+                 negative_group='nOther', rate=False, frl_key=_default_frl_key, len_BG=8):
         columns = [positive_group]
         super().__init__(columns=columns, positive_group=positive_group,
-                         negative_group=negative_group, frl_key=frl_key)
+                         negative_group=negative_group, frl_key=frl_key, len_BG=len_BG)
         
         # Solving the naive classification problem:
         self.rate = rate
