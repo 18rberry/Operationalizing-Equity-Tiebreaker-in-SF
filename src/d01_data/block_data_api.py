@@ -62,6 +62,7 @@ class BlockDataApi(AbstractDataApi):
                 df_field = self.read_data(_block_frl_file_path[frl_key] + _fields_extension)
                 
                 # For grouped blocks we need to average the counts:
+                print(_block_frl_file_path[frl_key] + _data_extension)
                 df_data = self.read_data(_block_frl_file_path[frl_key] + _data_extension).copy()
 
                 count_df = df_data.groupby(['Geoid Group']).size().to_frame(name="count").reset_index()
