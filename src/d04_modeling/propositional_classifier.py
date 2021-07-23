@@ -1,7 +1,7 @@
 import pandas as pd
 from collections.abc import Iterable
 
-from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier
+from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier, _default_frl_key
 
 
 frl_columns = ["nAALPI", "nFRL", "nBoth", "nFocal",
@@ -9,18 +9,20 @@ frl_columns = ["nAALPI", "nFRL", "nBoth", "nFocal",
 
 ######################################################################################################################
 
-#Function to create a pre-formatted statment for logical evaluation given features, operators, and comparisors:
+# Function to create a pre-formatted statment for logical evaluation given features, operators, and comparisors:
+
+
 def get_statement(features, operators, comparisors):
     i = 0
     statement = ""
     for feature in features:
-        #If there is a tuple we open a parantheses:
+        # If there is a tuple we open a parantheses:
         if type(feature) == tuple:
             statement += " ("
             i_max = i + len(feature) - 1
-            #We proceed for each entry in the tuple:
+            # We proceed for each entry in the tuple:
             for sub_feature in feature:
-                comp = comparisors[i] + " {" + str(i) + ":.2f} " #comparisor with the formating placeholder
+                comp = comparisors[i] + " {" + str(i) + ":.2f} "  # comparisor with the formating placeholder
                 if i < i_max:
                     operator = operators[i] + " "
                 else:
@@ -30,9 +32,9 @@ def get_statement(features, operators, comparisors):
                         operator = ")"
                 statement += sub_feature + comp + operator
                 i += 1
-        #No tuple means we can just do the work above:
+        # No tuple means we can just do the work above:
         else:
-            comp = comparisors[i] + " {" + str(i) + ":.2f} " #comparisor with the formating placeholder
+            comp = comparisors[i] + " {" + str(i) + ":.2f} "  # comparisor with the formating placeholder
             if i < len(operators):
                 operator = operators[i] + " "
             else:
@@ -43,44 +45,48 @@ def get_statement(features, operators, comparisors):
 
 ######################################################################################################################
 
+
 class PropositionalClassifier(AbstractBlockClassifier):
-    
+
     def __init__(self, features, operators, comparisors=None, 
                        positive_group="nFocal", negative_group="nOther",
-                       user="", len_BG=8):
+                       user="", len_BG=8, frl_key=_default_frl_key):
         
         columns = frl_columns
         
         self.positive_group = positive_group
         self.negative_group = negative_group
-        AbstractBlockClassifier.__init__(self, columns, positive_group=self.positive_group, negative_group=self.negative_group, user=user)
-        
+
+        AbstractBlockClassifier.__init__(self, columns,
+                                         positive_group = self.positive_group, negative_group=self.negative_group,
+                                         user=user, frl_key=frl_key, len_BG=len_BG)
+
         self.add_proposition(features, operators, comparisors)
         
     def add_proposition(self, features, operators, comparisors=None):
         '''
         No output. Adds the pre-formatted statement to class attributes. Called upon initialization.
         '''
-        #Features saved as attribute:
+        # Features saved as attribute:
         self.features = features
         
-        #Pre-process the comparisors. If none for comparisors, assume \geq:
+        # Pre-process the comparisors. If none for comparisors, assume \geq:
         if comparisors is None:
             comparisors = [" >= "]*(len(operators) + 1)
-        #In case we provided a list of comparisors, ensure the spaces are there:
+        # In case we provided a list of comparisors, ensure the spaces are there:
         else:
             for comparisor in comparisors:
                 if comparisor[0] != " ":
                     comparisor = " " + comparisor
-                if compariso[-1] != " ":
+                if comparisor[-1] != " ":
                     comparisor = comparisor + " "
         self.comparisors = comparisors
 
-        #Pre-process the operators. Make them all lower case:
+        # Pre-process the operators. Make them all lower case:
         operators = [op.lower() for op in operators]
         self.operators = operators
         
-        #Get the statement:
+        # Get the statement:
         self.statement = get_statement(features, operators, comparisors)
 
     def add_params(self, params):
@@ -123,24 +129,26 @@ class PropositionalClassifier(AbstractBlockClassifier):
 
 ######################################################################################################################
 
+
 class andClassifier(PropositionalClassifier):
     
     def __init__(self, features, comparisors=None,
                        positive_group="nFocal", negative_group="nOther",
-                       user="", len_BG=8):
+                       user="", len_BG=8,frl_key=_default_frl_key):
         
         operators = ["and"]*(len(features) - 1)
         PropositionalClassifier.__init__(self, features, operators, comparisors,
-                                               positive_group, negative_group,
-                                               user=user)
+                                         positive_group, negative_group,
+                                         user=user, frl_key=frl_key, len_BG=len_BG)
+
 
 class orClassifier(PropositionalClassifier):
     
     def __init__(self, features, comparisors=None,
                        positive_group="nFocal", negative_group="nOther",
-                       user="", len_BG=8):
+                       user="", len_BG=8,frl_key=_default_frl_key):
         
         operators = ["or"]*(len(features) - 1)
         PropositionalClassifier.__init__(self, features, operators, comparisors,
-                                                positive_group, negative_group,
-                                                user=user)
+                                         positive_group, negative_group,
+                                         user=user, frl_key=frl_key, len_BG=len_BG)
