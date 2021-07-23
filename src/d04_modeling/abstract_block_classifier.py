@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from src.d02_intermediate.classifier_data_api import ClassifierDataApi, geoid_name
-from src.d00_utils.utils import get_label, add_percent_columns
+from src.d00_utils.utils import get_label, add_percent_columns, add_BG_columns
 
 classifier_data_api = ClassifierDataApi()
 
@@ -13,20 +13,23 @@ _classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 class AbstractBlockClassifier:
     map_data = None
     
-    def __init__(self, columns, positive_group="nFocal", negative_group="nOther", user=""):
+    def __init__(self, columns, positive_group="nFocal", negative_group="nOther", len_BG=8, user=""):
         
         raw_data = classifier_data_api.get_block_data(user=user)
         self.raw_data = raw_data
         
         grouped_data = raw_data.groupby('group').sum()
         extended_data = add_percent_columns(grouped_data)
-        data = extended_data[['n', *columns]]
-        nonan_data = data.dropna()
+        self.full_data = extended_data
         
+        data = extended_data[["n", *columns]]
+        data = add_BG_columns(extended_data, positive_group, len_BG)
+        nonan_data = data.dropna()
         self.data = nonan_data.astype('float64')
         
         self.positive_group = positive_group
         self.negative_group = negative_group
+        
         self.data[self.negative_group] = self.data['n'] - self.data[self.positive_group]
         
         # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
@@ -137,11 +140,10 @@ class AbstractBlockClassifier:
             
         return Axes
     
-    def plot_map(self, params, ax=None):
+    def get_tiebreakermap(self, params):
         """
-        returns ax with map of focal blocks for a given parameters list.
-        """
-        
+        returns geoDataFrame with map of focal blocks for a given parameters list under column "tiebreaker".
+        """        
         if self.map_data is None:
             self.map_data = classifier_data_api.get_map_df_data(cols=['group'])
         
@@ -149,6 +151,14 @@ class AbstractBlockClassifier:
         
         solution_set = self.get_solution_set(params)
         map_df_data["tiebreaker"] = map_df_data['group'].apply(lambda x: get_label(x, solution_set))
+        
+        return map_df_data
+    
+    def plot_map(self, params, ax=None):
+        """
+        returns ax with map of focal blocks for a given parameters list.
+        """
+        map_df_data = self.get_tiebreakermap(params)
         
         if ax is None:
             fig, ax = plt.subplots(figsize=(25,25))

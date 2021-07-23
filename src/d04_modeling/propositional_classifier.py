@@ -4,7 +4,8 @@ from collections.abc import Iterable
 from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier
 
 
-frl_columns = ["nAALPI", "nFRL", "nBoth", "nFocal", "pctAALPI", "pctFRL", "pctBoth", "pctFocal"]
+frl_columns = ["nAALPI", "nFRL", "nBoth", "nFocal",
+               "pctAALPI", "pctFRL", "pctBoth", "pctFocal"]
 
 ######################################################################################################################
 
@@ -46,13 +47,13 @@ class PropositionalClassifier(AbstractBlockClassifier):
     
     def __init__(self, features, operators, comparisors=None, 
                        positive_group="nFocal", negative_group="nOther",
-                       user=""):
+                       user="", len_BG=8):
         
         columns = frl_columns
         
         self.positive_group = positive_group
         self.negative_group = negative_group
-        AbstractBlockClassifier.__init__(self, columns, negative_group=self.negative_group, user=user)
+        AbstractBlockClassifier.__init__(self, columns, positive_group=self.positive_group, negative_group=self.negative_group, user=user)
         
         self.add_proposition(features, operators, comparisors)
         
@@ -126,7 +127,7 @@ class andClassifier(PropositionalClassifier):
     
     def __init__(self, features, comparisors=None,
                        positive_group="nFocal", negative_group="nOther",
-                       user=""):
+                       user="", len_BG=8):
         
         operators = ["and"]*(len(features) - 1)
         PropositionalClassifier.__init__(self, features, operators, comparisors,
@@ -137,7 +138,7 @@ class orClassifier(PropositionalClassifier):
     
     def __init__(self, features, comparisors=None,
                        positive_group="nFocal", negative_group="nOther",
-                       user=""):
+                       user="", len_BG=8):
         
         operators = ["or"]*(len(features) - 1)
         PropositionalClassifier.__init__(self, features, operators, comparisors,
