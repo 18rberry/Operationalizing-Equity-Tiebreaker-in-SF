@@ -8,7 +8,7 @@ from src.d01_data.block_data_api import BlockDataApi, _default_frl_key
 from src.d01_data.student_data_api import StudentDataApi, _block_features, _census_block_column, \
 _diversity_index_features
 
-from src.d00_utils.utils import get_group_value
+from src.d00_utils.utils import get_group_value, add_percent_columns
 
 geoid_name = 'geoid'
 
@@ -28,11 +28,13 @@ class ClassifierDataApi:
     def refresh(self):
         self.__block_data = None
     
-    def get_block_data(self, frl_key=_default_frl_key):
+    def get_block_data(self, frl_key=_default_frl_key, pct_frl=False):
         if self.__block_data is None:
             e = time()
             print("Loading Block FRL data...", end="")
             frl_df = self.get_frl_data(frl_key=frl_key)
+            if pct_frl:
+                frl_df = add_percent_columns(frl_df)
             print("%.4f" % (time()-e))
             e = time()
             print("Loading Block Demographic data...", end="")
@@ -51,7 +53,7 @@ class ClassifierDataApi:
             
             self.__block_data = df
         
-        return self.__block_data.copy()
+        return self.__block_data.copy()        
     
     def get_map_data(self):       
         if self.__map_data is None:
@@ -119,21 +121,27 @@ class ClassifierDataApi:
         return stud_df
     
     @staticmethod
-    def plot_map_column(map_df_data, col, cmap="viridis", ax=None, save=False, fig=None):
+    def plot_map_column(map_df_data, col, cmap="viridis", ax=None, save=False, 
+                        fig=None, title=None, legend=True, show=True):
 
         if ax is None:
-            fig, ax = plt.subplots(figsize=(30,30))
+            fig, ax = plt.subplots(figsize=(4.8,4.8))
             save = True
 
         map_df_data.plot(column=col, ax=ax, cmap=cmap, 
-                             legend=True, legend_kwds={'orientation': "horizontal"},
+                             legend=legend, legend_kwds={'orientation': "horizontal"},
                              missing_kwds={'color': 'lightgrey'})
-        ax.set_title(col, fontsize=50)
-        plt.tight_layout()
-        plt.show()
+        if title is None:
+            ax.set_title(col, fontsize=12)
+        else:
+            ax.set_title(title, fontsize=12)
+        if show:
+            plt.axis('off')
+            plt.tight_layout()
+            plt.show()
         
         if save:
-            fname = col + '.png'
+            fname = 'outputs/' + col + '.png'
             fig.savefig(fname)
 
         return ax
