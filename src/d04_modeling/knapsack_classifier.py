@@ -6,10 +6,10 @@ from src.d04_modeling.knapsack_approx import KnapsackApprox
 class KnapsackClassifier(AbstractBlockClassifier):
     
     def __init__(self, positive_group='nFRL', negative_group='nOther', load=False, frl_key=_default_frl_key,
-                 run_name=None, len_BG=8):
+                 run_name=None):
         columns = [positive_group]
         super().__init__(columns=columns, positive_group=positive_group,
-                         negative_group=negative_group, frl_key=frl_key, len_BG=len_BG)
+                         negative_group=negative_group, frl_key=frl_key)
         
         # Solving the Knapsack Problem:
         data = self.data.round().astype('int64')

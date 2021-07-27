@@ -1,13 +1,10 @@
 import pandas as pd
 from collections.abc import Iterable
-from itertools import chain
 
 from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier, _default_frl_key
 
 
-frl_columns = ["nAALPI", "nFRL", "nBoth", "nFocal",
-               "pctAALPI", "pctFRL", "pctBoth", "pctFocal", "pctBothUnion",
-               "BG_pctAALPI", "BG_pctFRL", "BG_pctBoth", "BG_pctFocal"]
+frl_columns = ["nAALPI", "nFRL", "nBoth", "nFocal", "pctAALPI", "pctFRL", "pctBoth", "pctFocal"]
 
 ######################################################################################################################
 
@@ -49,33 +46,16 @@ def get_statement(features, operators, comparisors):
 
 
 class PropositionalClassifier(AbstractBlockClassifier):
-
-    def __init__(self, features, operators, comparisors=None, 
-                       positive_group="nFocal", negative_group="nOther",
-                       user="", frl_key=_default_frl_key,
-                       len_BG=8, nbhd=False):
+    def __init__(self, features, operators, comparisors=None,
+                 positive_group="nFocal", negative_group="nOther",
+                 user="", frl_key=_default_frl_key):
         
-        #Ensure we have a list of columns that are non-repeated strings, including the positive group:
-        if all(isinstance(item, str) for item in features):
-            columns = features.copy()
-        else:
-            columns = []
-            for feature in features:
-                if type(feature) == str:
-                    columns.append(feature)
-                else:
-                    for subfeature in feature:
-                        columns.append(subfeature)  
-        columns = list(set(columns))
-        if positive_group not in columns:
-            columns.append(positive_group)
+        columns = frl_columns
         
         self.positive_group = positive_group
         self.negative_group = negative_group
-
-        AbstractBlockClassifier.__init__(self, columns,
-                                         positive_group = self.positive_group, negative_group=self.negative_group,
-                                         user=user, frl_key=frl_key, len_BG=len_BG, nbhd=nbhd)
+        AbstractBlockClassifier.__init__(self, columns, negative_group=self.negative_group,
+                                         user=user, frl_key=frl_key)
 
         self.add_proposition(features, operators, comparisors)
         
@@ -149,26 +129,22 @@ class PropositionalClassifier(AbstractBlockClassifier):
 class andClassifier(PropositionalClassifier):
     
     def __init__(self, features, comparisors=None,
-                       positive_group="nFocal", negative_group="nOther",
-                       user="", frl_key=_default_frl_key,
-                       len_BG=8, nbhd=False):
+                 positive_group="nFocal", negative_group="nOther",
+                 user="", frl_key=_default_frl_key):
         
         operators = ["and"]*(len(features) - 1)
         PropositionalClassifier.__init__(self, features, operators, comparisors,
                                          positive_group, negative_group,
-                                         user=user, frl_key=frl_key,
-                                         len_BG=len_BG, nbhd=nbhd)
+                                         user=user, frl_key=frl_key)
 
 
 class orClassifier(PropositionalClassifier):
     
     def __init__(self, features, comparisors=None,
-                       positive_group="nFocal", negative_group="nOther",
-                       user="", frl_key=_default_frl_key,
-                       len_BG=8, nbhd=False):
+                 positive_group="nFocal", negative_group="nOther",
+                 user="", frl_key=_default_frl_key):
         
         operators = ["or"]*(len(features) - 1)
         PropositionalClassifier.__init__(self, features, operators, comparisors,
                                          positive_group, negative_group,
-                                         user=user, frl_key=frl_key,
-                                         len_BG=len_BG, nbhd=nbhd)
+                                         user=user, frl_key=frl_key)
