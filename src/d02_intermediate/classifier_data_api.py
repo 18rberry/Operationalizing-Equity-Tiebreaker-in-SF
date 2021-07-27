@@ -101,8 +101,9 @@ class ClassifierDataApi:
     @staticmethod
     def get_demo_data():
         demo_df = block_data_api.get_data().set_index('Block')[['BlockGroup',
-                                                                'CTIP_2013 assignment']].dropna(subset=['BlockGroup'])
-        demo_df.rename(columns={'CTIP_2013 assignment': 'CTIP13'}, inplace=True)
+                                                                'CTIP_2013 assignment',
+                                                                'SF Analysis Neighborhood']].dropna(subset=['BlockGroup'])
+        demo_df.rename(columns={'CTIP_2013 assignment': 'CTIP13', 'SF Analysis Neighborhood': 'Neighborhood'}, inplace=True)
         demo_df.index.name = geoid_name
         
         return demo_df
@@ -119,18 +120,20 @@ class ClassifierDataApi:
         return stud_df
     
     @staticmethod
-    def plot_map_column(map_df_data, col, cmap="viridis", ax=None, save=False, fig=None):
+    def plot_map_column(map_df_data, col, cmap="viridis", ax=None, save=False, fig=None, leg=True, show=True):
 
         if ax is None:
             fig, ax = plt.subplots(figsize=(30,30))
             save = True
 
         map_df_data.plot(column=col, ax=ax, cmap=cmap, 
-                             legend=True, legend_kwds={'orientation': "horizontal"},
+                             legend=leg, legend_kwds={'orientation': "horizontal"},
                              missing_kwds={'color': 'lightgrey'})
         ax.set_title(col, fontsize=50)
         plt.tight_layout()
-        plt.show()
+        
+        if show:
+            plt.show()
         
         if save:
             fname = col + '.png'
