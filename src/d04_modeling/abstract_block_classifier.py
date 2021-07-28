@@ -18,26 +18,45 @@ class AbstractBlockClassifier:
                  user=None, frl_key=_default_frl_key,
                  group_criterion=False, len_BG=8):
         
+        self.positive_group = positive_group
+        self.negative_group = negative_group
+        
+        #Ensure the columns list contains what we want:
+        if columns is None:
+            columns = [positive_group, negative_group]
+        else:
+            if positive_group not in columns:
+                columns.append(positive_group)
+            if negative_group not in columns:
+                columns.append(negative_group)
+        
+        #Getting the raw data from classifier api:
         raw_data = self.__classifier_data_api.get_block_data(frl_key=frl_key)
         self.raw_data = raw_data
         
-        if columns is None:
-            columns = ['nFocal']
+        #Adding the negative group column:
+        raw_data[self.negative_group] = raw_data['n'] - raw_data[self.positive_group]
         
-        grouped_data = raw_data#.groupby('group').sum()
-        self.grouped_data = grouped_data
+        #Extending the data with percents and block group columns:
+        extended_data = add_percent_columns(raw_data)
         
-        extended_data = add_percent_columns(grouped_data)
-        data = extended_data[['n', *columns]]
+        if group_criterion:
+            extended_data = add_group_columns(extended_data, group_criterion, len_BG, positive_group)
+        
+        self.full_data = extended_data
+        
+        #Selecting columns according to the block group criterion:
+        if group_criterion == "nbhd":
+            data = extended_data[['n', 'Neighborhood', *columns]]
+        elif group_criterion == "block_group":
+            data = extended_data[['n', 'BlockGroup', *columns]]
+        else:
+            data = extended_data[['n', *columns]]
+        
         nonan_data = data.dropna()
+        self.data = nonan_data
         
-        self.data = nonan_data.astype('float64')
-        
-        self.positive_group = positive_group
-        self.negative_group = negative_group
-        self.data[self.negative_group] = self.data['n'] - self.data[self.positive_group]
-        
-        # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
+        #Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
         self.prediction_dict = dict()
         self.confusion_dict = dict()
     
@@ -148,11 +167,10 @@ class AbstractBlockClassifier:
             
         return Axes
     
-    def plot_map(self, params, ax=None, idx_col='geoid'):
+    def get_tiebreaker_map(self, params, idx_col="geoid"):
         """
-        returns ax with map of focal blocks for a given parameters list.
+        returns SF geodataframe with 'tiebreaker' column of focal blocks for a given parameters list.
         """
-        
         if self.map_data is None:
             self.map_data = self.__classifier_data_api.get_map_df_data(cols=[idx_col])
         
@@ -161,9 +179,19 @@ class AbstractBlockClassifier:
         
         #Whether we will apply the label to a column or to the index depends on our classification (by group or by id)
         if map_df_data.index.name == idx_col:
-            map_df_data["tiebreaker"] = map_df_data.index.to_series().apply(lambda x: get_label(x, solution_set, block_idx=self.data.index))
+            index = map_df_data.index.to_series()
+            map_df_data["tiebreaker"] = index.apply(lambda x: get_label(x, solution_set, block_idx=self.data.index))
         else:
             map_df_data["tiebreaker"] = map_df_data[idx_col].apply(lambda x: get_label(x, solution_set))
+            
+        return map_df_data
+    
+    def plot_map(self, params, ax=None, idx_col='geoid'):
+        """
+        returns ax with map of focal blocks for a given parameters list.
+        """
+        
+        map_df_data = self.get_tiebreaker_map(params)
         
         if ax is None:
             fig, ax = plt.subplots(figsize=(25,25))
@@ -195,6 +223,8 @@ class AbstractBlockClassifier:
             
             if 0 not in confusion_matrix.columns:
                 confusion_matrix[0] = 0
+            if 1 not in confusion_matrix.columns:
+                confusion_matrix[1] = 0
             
             confusion_matrix = confusion_matrix[[1, 0]]
             self.confusion_dict[params_key] = confusion_matrix

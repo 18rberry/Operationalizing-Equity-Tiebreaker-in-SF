@@ -41,6 +41,14 @@ def get_statement(features, operators, comparisors):
             i += 1
     return statement.strip(" ")
 
+def unravel_list(features_list, l=[]):
+    for feature in features_list:
+        if type(feature) == tuple:
+            l = unravel_list(list(feature), l=l)
+        else:
+            l.append(feature)
+    return list(set(l))
+
 ######################################################################################################################
 
 
@@ -50,18 +58,22 @@ class PropositionalClassifier(AbstractBlockClassifier):
                  positive_group="nFocal", negative_group="nOther",
                  user="", frl_key=_default_frl_key,
                  group_criterion=False, len_BG=8):
+
+        #First we need to obtain a list of columns from our features:
+        self.features = unravel_list(features, [])
         
-        columns = frl_columns
+        if positive_group not in self.features:
+            self.features.append(positive_group)
         
         self.positive_group = positive_group
         self.negative_group = negative_group
-        AbstractBlockClassifier.__init__(self, columns,
+        AbstractBlockClassifier.__init__(self, self.features,
                                          positive_group=self.positive_group, negative_group=self.negative_group,
                                          user=user, frl_key=frl_key,
                                          group_criterion=group_criterion, len_BG=len_BG)
         
         self.add_proposition(features, operators, comparisors)
-        
+
     def add_proposition(self, features, operators, comparisors=None):
         '''
         No output. Adds the pre-formatted statement to class attributes. Called upon initialization.
