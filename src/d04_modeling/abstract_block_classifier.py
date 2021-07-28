@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from src.d02_intermediate.classifier_data_api import ClassifierDataApi, geoid_name, _default_frl_key
-from src.d00_utils.utils import get_label, add_percent_columns
+from src.d00_utils.utils import get_label, add_percent_columns, add_group_columns
 
 _classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 
@@ -13,16 +13,20 @@ class AbstractBlockClassifier:
     map_data = None
     __classifier_data_api = ClassifierDataApi()
     
-    def __init__(self, columns=None, positive_group='nFocal', negative_group='nOther',
-                 user=None, frl_key=_default_frl_key):
+    def __init__(self, columns=None,
+                 positive_group='nFocal', negative_group='nOther',
+                 user=None, frl_key=_default_frl_key,
+                 group_criterion=False, len_BG=8):
+        
         raw_data = self.__classifier_data_api.get_block_data(frl_key=frl_key)
-
         self.raw_data = raw_data
         
         if columns is None:
             columns = ['nFocal']
         
-        grouped_data = raw_data.groupby('group').sum()
+        grouped_data = raw_data#.groupby('group').sum()
+        self.grouped_data = grouped_data
+        
         extended_data = add_percent_columns(grouped_data)
         data = extended_data[['n', *columns]]
         nonan_data = data.dropna()
@@ -144,18 +148,22 @@ class AbstractBlockClassifier:
             
         return Axes
     
-    def plot_map(self, params, ax=None):
+    def plot_map(self, params, ax=None, idx_col='geoid'):
         """
         returns ax with map of focal blocks for a given parameters list.
         """
         
         if self.map_data is None:
-            self.map_data = self.__classifier_data_api.get_map_df_data(cols=['group'])
+            self.map_data = self.__classifier_data_api.get_map_df_data(cols=[idx_col])
         
         map_df_data = self.map_data.copy()
-        
         solution_set = self.get_solution_set(params)
-        map_df_data["tiebreaker"] = map_df_data['group'].apply(lambda x: get_label(x, solution_set))
+        
+        #Whether we will apply the label to a column or to the index depends on our classification (by group or by id)
+        if map_df_data.index.name == idx_col:
+            map_df_data["tiebreaker"] = map_df_data.index.to_series().apply(lambda x: get_label(x, solution_set, block_idx=self.data.index))
+        else:
+            map_df_data["tiebreaker"] = map_df_data[idx_col].apply(lambda x: get_label(x, solution_set))
         
         if ax is None:
             fig, ax = plt.subplots(figsize=(25,25))
