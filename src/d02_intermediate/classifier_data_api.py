@@ -51,7 +51,7 @@ class ClassifierDataApi:
             
             self.__block_data = df
         
-        return self.__block_data.copy()
+        return self.__block_data
     
     def get_map_data(self):       
         if self.__map_data is None:
@@ -63,9 +63,9 @@ class ClassifierDataApi:
             sfusd_map[geoid_name] = sfusd_map['geoid10'].astype('int64')
             sfusd_map.set_index(geoid_name, inplace=True)
             
-            self.__map_data = sfusd_map.copy()
+            self.__map_data = sfusd_map
             
-        return self.__map_data.copy()
+        return self.__map_data
     
     def get_map_df_data(self, cols):
         block_data = self.get_block_data()
