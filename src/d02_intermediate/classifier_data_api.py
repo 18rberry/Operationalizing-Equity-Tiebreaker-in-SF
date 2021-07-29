@@ -65,16 +65,20 @@ class ClassifierDataApi:
             sfusd_map[geoid_name] = sfusd_map['geoid10'].astype('int64')
             sfusd_map.set_index(geoid_name, inplace=True)
             
-            self.__map_data = sfusd_map.copy()
+            self.__map_data = sfusd_map
             
-        return self.__map_data.copy()
+        return self.__map_data
     
     def get_map_df_data(self, cols):
         block_data = self.get_block_data()
         map_data = self.get_map_data()
         
-        map_df_data = pd.concat([map_data.reindex(block_data.index), block_data[cols]], 
-                                axis=1, ignore_index=False)
+        if cols == [geoid_name]:
+            map_df_data = map_data.reindex(block_data.index)
+            
+        else:
+            map_df_data = pd.concat([map_data.reindex(block_data.index), block_data[cols]], 
+                                     axis=1, ignore_index=False)
         
         return map_df_data
 
@@ -103,8 +107,10 @@ class ClassifierDataApi:
     @staticmethod
     def get_demo_data():
         demo_df = block_data_api.get_data().set_index('Block')[['BlockGroup',
-                                                                'CTIP_2013 assignment']].dropna(subset=['BlockGroup'])
-        demo_df.rename(columns={'CTIP_2013 assignment': 'CTIP13'}, inplace=True)
+                                                                'CTIP_2013 assignment',
+                                                                'SF Analysis Neighborhood']].dropna(subset=['BlockGroup'])
+        demo_df.rename(columns={'CTIP_2013 assignment': 'CTIP13',
+                                'SF Analysis Neighborhood':'Neighborhood'}, inplace=True)
         demo_df.index.name = geoid_name
         
         return demo_df
