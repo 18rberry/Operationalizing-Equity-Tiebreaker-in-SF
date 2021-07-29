@@ -190,7 +190,7 @@ class AbstractBlockClassifier:
             
         return Axes
     
-    def get_tiebreaker_map(self, params, col, idx_col="geoid"):
+    def get_tiebreaker_map(self, params, col="tiebreaker", idx_col="geoid"):
 
         """
         returns SF geodataframe with 'tiebreaker' column of focal blocks for a given parameters list.
