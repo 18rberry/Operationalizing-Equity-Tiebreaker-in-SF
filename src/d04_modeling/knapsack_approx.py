@@ -70,8 +70,9 @@ class KnapsackApprox:
         v_opt = np.max(np.argwhere(self.value_function[-1][:] <= w_max).flatten())
         v = v_opt
         i = self.value_function.shape[0]-1
-
         while v > 0:
+            if i < 0:
+                raise Exception("Something is of with the saved value function... Try computing it again!")
             w_i = self.w.iloc[i]
             v_i = self.v['v_hat'].iloc[i]
             w1 = self.get_values(i, v)

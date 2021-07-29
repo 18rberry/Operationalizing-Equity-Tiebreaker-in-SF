@@ -64,6 +64,11 @@ class AbstractBlockClassifier:
         self.prediction_dict = dict()
         self.confusion_dict = dict()
         
+        self.__frl_key = frl_key
+        
+    def get_frl_key(self):
+        return self.__frl_key
+        
     def set_negative_group(self, positive_group, negative_group):
         # can I use this to plot ROC and precision/recall curves for different definitions of focal groups?
         self.data[negative_group] = self.data['n'] - self.data[positive_group]
