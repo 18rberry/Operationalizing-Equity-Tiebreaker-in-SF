@@ -16,7 +16,7 @@ class NaiveClassifier(AbstractBlockClassifier):
         self.rate = rate
         self.results = self.get_results()
         
-    def get_results(self):
+    def get_results(self, positive_group=None, negative_group=None):            
         results = self.data.copy()
         if self.rate:
             fun = lambda row: row[self.positive_group] / float(row['n'])
@@ -34,6 +34,13 @@ class NaiveClassifier(AbstractBlockClassifier):
     
     def get_roc(self, param_arr=None):        
         return self.results[['fpr', 'tpr']].copy()
+    
+    def get_precision_recall(self):
+        results = self.results.copy()      
+        results['recall'] = results['tp'] / self.data[self.positive_group].sum()
+        results['precision'] = results['tp'] / (results['tp'] + results['fp'])
+        
+        return results
     
     def get_solution_set(self, fpr):
         

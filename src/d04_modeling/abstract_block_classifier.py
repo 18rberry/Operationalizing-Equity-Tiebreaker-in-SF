@@ -42,7 +42,7 @@ class AbstractBlockClassifier:
         
         if group_criterion:
             extended_data = add_group_columns(extended_data, group_criterion, len_BG, positive_group)
-        
+
         self.full_data = extended_data
         
         #Selecting columns according to the block group criterion:
@@ -54,12 +54,20 @@ class AbstractBlockClassifier:
             data = extended_data[['n', *columns]]
         
         nonan_data = data.dropna()
-        self.data = nonan_data
+        self.data = nonan_data.copy()
+        
+        self.positive_group = positive_group
+        self.negative_group = negative_group
+        self.set_negative_group(positive_group, negative_group)
         
         #Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
         self.prediction_dict = dict()
         self.confusion_dict = dict()
-    
+        
+    def set_negative_group(self, positive_group, negative_group):
+        # can I use this to plot ROC and precision/recall curves for different definitions of focal groups?
+        self.data[negative_group] = self.data['n'] - self.data[positive_group]
+        
     def refresh(self):
         self.__classifier_data_api.refresh()
     
@@ -83,6 +91,21 @@ class AbstractBlockClassifier:
             tpr_arr.append(tpr)
 
         return pd.DataFrame(data=np.array([tpr_arr, fpr_arr]).T, columns=["tpr", "fpr"])
+    
+    def get_precision_recall(self, param_arr):
+        """
+        returns pandas.DataFrame with 'presicion' and 'recall' columns, each row corresponds to a point in 
+        a provided parameter array.
+        """
+        recall_arr = []
+        precision_arr = []
+        for params in param_arr:
+            recall = self.recall(params)
+            recall_arr.append(recall)
+            precision = self.precision(params)
+            precision_arr.append(precision)
+
+        return pd.DataFrame(data=np.array([recall_arr, precision_arr]).T, columns=["recall", "precision"])
         
     def plot_roc(self, param_arr, ax=None):
         if ax is None:
@@ -167,7 +190,8 @@ class AbstractBlockClassifier:
             
         return Axes
     
-    def get_tiebreaker_map(self, params, idx_col="geoid"):
+    def get_tiebreaker_map(self, params, col, idx_col="geoid"):
+
         """
         returns SF geodataframe with 'tiebreaker' column of focal blocks for a given parameters list.
         """
@@ -177,26 +201,27 @@ class AbstractBlockClassifier:
         map_df_data = self.map_data.copy()
         solution_set = self.get_solution_set(params)
         
-        #Whether we will apply the label to a column or to the index depends on our classification (by group or by id)
+        # Whether we will apply the label to a column or to the index depends on our classification (by group or by id)
         if map_df_data.index.name == idx_col:
             index = map_df_data.index.to_series()
-            map_df_data["tiebreaker"] = index.apply(lambda x: get_label(x, solution_set, block_idx=self.data.index))
+            map_df_data[col] = index.apply(lambda x: get_label(x, solution_set, block_idx=self.data.index))
         else:
-            map_df_data["tiebreaker"] = map_df_data[idx_col].apply(lambda x: get_label(x, solution_set))
+            map_df_data[col] = map_df_data[idx_col].apply(lambda x: get_label(x, solution_set))
             
         return map_df_data
     
-    def plot_map(self, params, ax=None, idx_col='geoid'):
+    def plot_map(self, params, ax=None, save=False, title="", col='tiebreaker', idx_col='geoid'):
         """
         returns ax with map of focal blocks for a given parameters list.
         """
         
-        map_df_data = self.get_tiebreaker_map(params)
+        map_df_data = self.get_tiebreaker_map(params, col)
         
-        if ax is None:
-            fig, ax = plt.subplots(figsize=(25,25))
+        # if ax is None:
+        #    fig, ax = plt.subplots(figsize=(4.8, 4.8))
         
-        ax = self.__classifier_data_api.plot_map_column(map_df_data=map_df_data, col="tiebreaker", ax=ax)
+        ax = self.__classifier_data_api.plot_map_column(map_df_data=map_df_data, col=col, ax=ax,
+                                                        legend=False, title=title, save=save)
         return ax
         
     def get_confusion_matrix(self, params):
@@ -244,3 +269,11 @@ class AbstractBlockClassifier:
     
     def tnr(self, params):
         return 1 - self.fpr(params)
+    
+    def recall(self, params):
+        confusion_matrix_arr = self.get_confusion_matrix(params).values
+        return confusion_matrix_arr[0,0]/(confusion_matrix_arr[0,0] + confusion_matrix_arr[0,1])
+    
+    def precision(self, params):
+        confusion_matrix_arr = self.get_confusion_matrix(params).values
+        return confusion_matrix_arr[0,0]/(confusion_matrix_arr[0,0] + confusion_matrix_arr[1,0])
