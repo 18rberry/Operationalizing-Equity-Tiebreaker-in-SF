@@ -42,10 +42,6 @@ class AbstractBlockClassifier:
         
         if group_criterion:
             extended_data = add_group_columns(extended_data, group_criterion, len_BG, positive_group)
-        
-        self.positive_group = positive_group
-        self.negative_group = negative_group
-        self.set_negative_group(positive_group, negative_group)
 
         self.full_data = extended_data
         
@@ -58,7 +54,11 @@ class AbstractBlockClassifier:
             data = extended_data[['n', *columns]]
         
         nonan_data = data.dropna()
-        self.data = nonan_data
+        self.data = nonan_data.copy()
+        
+        self.positive_group = positive_group
+        self.negative_group = negative_group
+        self.set_negative_group(positive_group, negative_group)
         
         #Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
         self.prediction_dict = dict()
