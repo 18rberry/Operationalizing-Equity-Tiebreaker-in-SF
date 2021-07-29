@@ -129,11 +129,31 @@ class ClassifierDataApi:
     @staticmethod
     def plot_map_column(map_df_data, col, cmap="viridis", ax=None, save=False, 
                         fig=None, title=None, legend=True, show=True):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(30,30))
+            save = True
 
+        map_df_data.plot(column=col, ax=ax, cmap=cmap, legend=True,
+                         legend_kwds={'orientation': "horizontal"},
+                             missing_kwds={'color': 'lightgrey'}
+                        )
+        ax.set_title(col, fontsize=50)
+        plt.tight_layout()
+        plt.show()
+        
+        if save:
+            fname = col + '.png'
+            fig.savefig(fname)
+
+        return ax
+    
+    @staticmethod
+    def plot_map_column_new(map_df_data, col, cmap="YlOrRd", ax=None, save=False, fig=None):
         if ax is None:
             fig, ax = plt.subplots(figsize=(4.8,4.8))
             save = True
 
+<<<<<<< Updated upstream
         map_df_data.plot(column=col, ax=ax, cmap=cmap, 
                              legend=legend, legend_kwds={'orientation': "horizontal"},
                              missing_kwds={'color': 'lightgrey'})
@@ -145,12 +165,22 @@ class ClassifierDataApi:
             plt.axis('off')
             plt.tight_layout()
             plt.show()
+=======
+        map_df_data.plot(column=col, ax=ax, cmap=cmap,legend=True, categorical=True, 
+                             legend_kwds={'orientation': "horizontal"},
+                             missing_kwds={'color': 'lightgrey'})
+        #ax.legend(map_df_data, ["OD", "ARG", "EOG", "AdvG", "SMMI", "ARE", "BE", "SAE"])
+        ax.set_title(col, fontsize=50)
+        plt.tight_layout()
+        plt.show()
+>>>>>>> Stashed changes
         
         if save:
             fname = 'outputs/' + col + '.png'
             fig.savefig(fname)
 
         return ax
+    
         
         
 if __name__ == "__main__":

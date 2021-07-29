@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from src.d02_intermediate.classifier_data_api import ClassifierDataApi, geoid_name, _default_frl_key
-from src.d00_utils.utils import get_label, add_percent_columns, add_group_columns
+from src.d00_utils.utils import get_label, add_percent_columns
 
 _classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 
@@ -12,7 +12,7 @@ _classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 class AbstractBlockClassifier:
     map_data = None
     __classifier_data_api = ClassifierDataApi()
-    
+
     def __init__(self, columns=None,
                  positive_group='nFocal', negative_group='nOther',
                  user=None, frl_key=_default_frl_key,
@@ -32,6 +32,7 @@ class AbstractBlockClassifier:
         
         #Getting the raw data from classifier api:
         raw_data = self.__classifier_data_api.get_block_data(frl_key=frl_key)
+
         self.raw_data = raw_data
         
         #Adding the negative group column:
@@ -44,6 +45,11 @@ class AbstractBlockClassifier:
             extended_data = add_group_columns(extended_data, group_criterion, len_BG, positive_group)
 
         self.full_data = extended_data
+
+        grouped_data = raw_data.groupby('group').sum()
+        extended_data = add_percent_columns(grouped_data)
+        data = extended_data[['n', *columns]]
+        nonan_data = data.dropna()
         
         #Selecting columns according to the block group criterion:
         if group_criterion == "nbhd":
@@ -191,15 +197,13 @@ class AbstractBlockClassifier:
         return Axes
     
     def get_tiebreaker_map(self, params, col, idx_col="geoid"):
-
         """
         returns SF geodataframe with 'tiebreaker' column of focal blocks for a given parameters list.
         """
         if self.map_data is None:
-            self.map_data = self.__classifier_data_api.get_map_df_data(cols=[idx_col])
+            self.map_data = self.__classifier_data_api.get_map_df_data(cols=['group'])
         
         map_df_data = self.map_data.copy()
-        solution_set = self.get_solution_set(params)
         
         # Whether we will apply the label to a column or to the index depends on our classification (by group or by id)
         if map_df_data.index.name == idx_col:
@@ -214,7 +218,6 @@ class AbstractBlockClassifier:
         """
         returns ax with map of focal blocks for a given parameters list.
         """
-        
         map_df_data = self.get_tiebreaker_map(params, col)
         
         # if ax is None:
@@ -222,6 +225,16 @@ class AbstractBlockClassifier:
         
         ax = self.__classifier_data_api.plot_map_column(map_df_data=map_df_data, col=col, ax=ax,
                                                         legend=False, title=title, save=save)
+        return ax
+    
+    def plot_map_new(self, map_df_data, params, ax = None):
+        solution_set = self.get_solution_set(params)
+        map_df_data["tiebreaker"] = map_df_data['group'].apply(lambda x: get_label(x, solution_set))
+        
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(25,25))
+        
+        ax = self.__classifier_data_api.plot_map_column_new(map_df_data, col="Gentrification", ax = ax)
         return ax
         
     def get_confusion_matrix(self, params):
