@@ -206,6 +206,7 @@ class AbstractBlockClassifier:
         map_df_data = self.map_data.copy()
         
         # Whether we will apply the label to a column or to the index depends on our classification (by group or by id)
+        solution_set = self.get_solution_set(params)
         if map_df_data.index.name == idx_col:
             index = map_df_data.index.to_series()
             map_df_data[col] = index.apply(lambda x: get_label(x, solution_set, block_idx=self.data.index))
@@ -234,7 +235,7 @@ class AbstractBlockClassifier:
         if ax is None:
             fig, ax = plt.subplots(figsize=(25,25))
         
-        ax = self.__classifier_data_api.plot_map_column_new(map_df_data, col="Gentrification", ax = ax)
+        ax = self.__classifier_data_api.plot_map_column_new(map_df_data, col="New Gent", ax = ax)
         return ax
         
     def get_confusion_matrix(self, params):
