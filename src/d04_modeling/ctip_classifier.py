@@ -11,7 +11,7 @@ class CtipClassifier(AbstractBlockClassifier):
                          positive_group=positive_group, negative_group=negative_group,
                          frl_key=frl_key,
                          group_criterion=group_criterion, len_BG=len_BG)
-        ctip13 = self.raw_data[['CTIP13', 'group']].groupby('group').agg(get_group_value)
+        ctip13 = self.raw_data[['CTIP13']]
         self.solution_set = ctip13.index[ctip13['CTIP13'] == 'CTIP1'].intersection(self.data.index)
     
     def get_results(self):

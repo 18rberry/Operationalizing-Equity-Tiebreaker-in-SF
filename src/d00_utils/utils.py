@@ -62,3 +62,19 @@ def add_group_columns(df, group_type, len_BG=8, positive_group="nFocal"):
     extended_df['BG_pctBothUnion'] = extended_df['BG_nBoth'] / extended_df['BG_nFocal'] #union
     
     return extended_df
+
+def add_bayesian_bernoulli(frl_df):
+    """
+    Compute focal students posterior for uniform priors
+    :param frl_df: pandas.DataFrame with the focal student data
+    :return:
+    """
+    variables = ['FRL', 'AALPI', 'Both', 'Focal']
+    
+    for x in variables:
+        prob_key = 'prob' + x
+        n_key = 'n' + x
+        frl_df[prob_key] = (frl_df[n_key] + 1) / (frl_df['n'] + 2)
+        
+    return frl_df
+    
