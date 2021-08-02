@@ -8,7 +8,7 @@ from src.d01_data.block_data_api import BlockDataApi, _default_frl_key
 from src.d01_data.student_data_api import StudentDataApi, _block_features, _census_block_column, \
 _diversity_index_features
 
-from src.d00_utils.utils import get_group_value
+from src.d00_utils.utils import get_group_value, add_percent_columns
 
 geoid_name = 'geoid'
 
@@ -28,11 +28,13 @@ class ClassifierDataApi:
     def refresh(self):
         self.__block_data = None
     
-    def get_block_data(self, frl_key=_default_frl_key):
+    def get_block_data(self, frl_key=_default_frl_key, pct_frl=False):
         if self.__block_data is None:
             e = time()
             print("Loading Block FRL data...", end="")
             frl_df = self.get_frl_data(frl_key=frl_key)
+            if pct_frl:
+                frl_df = add_percent_columns(frl_df)
             print("%.4f" % (time()-e))
             e = time()
             print("Loading Block Demographic data...", end="")
@@ -63,16 +65,20 @@ class ClassifierDataApi:
             sfusd_map[geoid_name] = sfusd_map['geoid10'].astype('int64')
             sfusd_map.set_index(geoid_name, inplace=True)
             
-            self.__map_data = sfusd_map.copy()
+            self.__map_data = sfusd_map
             
-        return self.__map_data.copy()
+        return self.__map_data
     
     def get_map_df_data(self, cols):
         block_data = self.get_block_data()
         map_data = self.get_map_data()
         
-        map_df_data = pd.concat([map_data.reindex(block_data.index), block_data[cols]], 
-                                axis=1, ignore_index=False)
+        if cols == [geoid_name]:
+            map_df_data = map_data.reindex(block_data.index)
+
+        else:
+            map_df_data = pd.concat([map_data.reindex(block_data.index), block_data[cols]],
+                                     axis=1, ignore_index=False)
         
         return map_df_data
 
@@ -101,8 +107,10 @@ class ClassifierDataApi:
     @staticmethod
     def get_demo_data():
         demo_df = block_data_api.get_data().set_index('Block')[['BlockGroup',
-                                                                'CTIP_2013 assignment']].dropna(subset=['BlockGroup'])
-        demo_df.rename(columns={'CTIP_2013 assignment': 'CTIP13'}, inplace=True)
+                                                                'CTIP_2013 assignment',
+                                                                'SF Analysis Neighborhood']].dropna(subset=['BlockGroup'])
+        demo_df.rename(columns={'CTIP_2013 assignment': 'CTIP13',
+                                'SF Analysis Neighborhood':'Neighborhood'}, inplace=True)
         demo_df.index.name = geoid_name
         
         return demo_df
@@ -119,21 +127,50 @@ class ClassifierDataApi:
         return stud_df
     
     @staticmethod
-    def plot_map_column(map_df_data, col, cmap="viridis", ax=None, save=False, fig=None):
+    def plot_map_column(map_df_data, col, cmap="viridis", ax=None, save=False,
+                        fig=None, title=None, legend=True, show=True):
 
         if ax is None:
-            fig, ax = plt.subplots(figsize=(30,30))
+            fig, ax = plt.subplots(figsize=(4.8,4.8))
             save = True
 
         map_df_data.plot(column=col, ax=ax, cmap=cmap, 
-                             legend=True, legend_kwds={'orientation': "horizontal"},
+                             legend=legend, legend_kwds={'orientation': "horizontal"},
                              missing_kwds={'color': 'lightgrey'})
-        ax.set_title(col, fontsize=50)
-        plt.tight_layout()
-        plt.show()
+        if title is None:
+            ax.set_title(col, fontsize=12)
+        else:
+            ax.set_title(title, fontsize=12)
+        if show:
+            plt.axis('off')
+            plt.tight_layout()
+            plt.show()
         
         if save:
-            fname = col + '.png'
+            fname = 'outputs/' + col + '.png'
+            fig.savefig(fname)
+
+        return ax
+
+    @staticmethod
+    def plot_map_column_new(map_df_data, col, cmap="YlOrRd", ax=None, save=False, fig=None,
+                            title=None, legend=True, show=True):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(4.8,4.8))
+            save = True
+        map_df_data.plot(column=col, ax=ax, cmap=cmap,
+                         legend=legend, legend_kwds={'orientation': "horizontal"},
+                         missing_kwds={'color': 'lightgrey'})
+        if title is None:
+            ax.set_title(col, fontsize=12)
+        else:
+            ax.set_title(title, fontsize=12)
+        if show:
+            plt.axis('off')
+            plt.tight_layout()
+            plt.show()
+        if save:
+            fname = 'outputs/' + col + '.png'
             fig.savefig(fname)
 
         return ax
