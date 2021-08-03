@@ -128,7 +128,7 @@ class ClassifierDataApi:
     
     @staticmethod
     def plot_map_column(map_df_data, col, cmap="viridis", ax=None, save=False,
-                        fig=None, title=None, legend=True, show=True):
+                        fig=None, title=None, legend=False, show=True):
 
         if ax is None:
             fig, ax = plt.subplots(figsize=(4.8,4.8))
@@ -158,7 +158,7 @@ class ClassifierDataApi:
         if ax is None:
             fig, ax = plt.subplots(figsize=(4.8,4.8))
             save = True
-        map_df_data.plot(column=col, ax=ax, cmap=cmap,
+        map_df_data.plot(column=col, ax=ax, cmap=cmap, marker = 'o', color = 'black',
                          legend=legend, legend_kwds={'orientation': "horizontal"},
                          missing_kwds={'color': 'lightgrey'})
         if title is None:
