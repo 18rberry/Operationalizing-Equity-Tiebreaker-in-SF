@@ -35,7 +35,7 @@ class NaiveClassifier(AbstractBlockClassifier):
     def get_roc(self, param_arr=None):        
         return self.results[['fpr', 'tpr']].copy()
     
-    def get_precision_recall(self):
+    def get_precision_recall(self, param_arr=None):
         results = self.results.copy()      
         results['recall'] = results['tp'] / self.data[self.positive_group].sum()
         results['precision'] = results['tp'] / (results['tp'] + results['fp'])
@@ -43,6 +43,6 @@ class NaiveClassifier(AbstractBlockClassifier):
         return results
     
     def get_solution_set(self, fpr):
-        
+
         mask = self.results['fpr'] <= fpr
         return self.results.index[mask]
