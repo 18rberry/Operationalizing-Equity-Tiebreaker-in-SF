@@ -215,7 +215,7 @@ class BlockDataApi(AbstractDataApi):
 
     def get_ses_score(self):
         """
-        Query SES score for each block
+        Query SES score for each block group
         :return: pandas.DataFrame with the SES score of each 'Block' (equivalent to geoid)
         """
         df = self.get_data(sfha=False).set_index('Block')
@@ -232,7 +232,7 @@ class BlockDataApi(AbstractDataApi):
 
     def get_academic_score(self):
         """
-        Query SES score for each block
+        Query SES score for each block group
         :return: pandas.DataFrame with the SES score of each 'Block' (equivalent to geoid)
         """
         df = self.get_data(sfha=False).set_index('Block')
@@ -246,7 +246,7 @@ class BlockDataApi(AbstractDataApi):
 
     def get_aalpi_score(self):
         """
-        Query SES score for each block
+        Query SES score for each block group
         :return: pandas.DataFrame with the SES score of each 'Block' (equivalent to geoid)
         """
         df = self.get_data(sfha=False).set_index('Block')
