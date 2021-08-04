@@ -221,7 +221,7 @@ class BlockDataApi(AbstractDataApi):
         df = self.get_data(sfha=False).set_index('Block')
 
         ses_factors_max = df[_ses_cols].max()
-        block_ses = df[_ses_cols + ['BlockGroup']].groupby('BlockGroup').agg(get_group_value())
+        block_ses = df[_ses_cols + ['BlockGroup']].groupby('BlockGroup').agg(get_group_value)
         block_ses = block_ses / ses_factors_max.values[np.newaxis, :]
         block_ses.columns = ['hhinc', 'pov', 'bachdeg']
 
