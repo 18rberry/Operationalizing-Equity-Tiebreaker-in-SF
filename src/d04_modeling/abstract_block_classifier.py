@@ -21,7 +21,7 @@ class AbstractBlockClassifier:
                  user=None, frl_key=_default_frl_key,
                  group_criterion=False, len_BG=8):
         """
-        :param columns: columns used for the classifier
+        :param columns: columns: list of columns we want to use for the classifier
         :param positive_group: column name of the positive counts
         :param negative_group: column name of the negative counts
         :param user: not used
@@ -33,7 +33,7 @@ class AbstractBlockClassifier:
         self.positive_group = positive_group
         self.negative_group = negative_group
         
-        #Ensure the columns list contains what we want:
+        # Ensure the columns list contains what we want:
         if columns is None:
             columns = [positive_group, negative_group]
         else:
@@ -42,14 +42,14 @@ class AbstractBlockClassifier:
             if negative_group not in columns:
                 columns.append(negative_group)
         
-        #Getting the raw data from classifier api:
+        # Getting the raw data from classifier api:
         raw_data = self.__classifier_data_api.get_block_data(frl_key=frl_key)
         self.raw_data = raw_data
         
-        #Adding the negative group column:
+        # Adding the negative group column:
         raw_data[self.negative_group] = raw_data['n'] - raw_data[self.positive_group]
         
-        #Extending the data with percents and block group columns:
+        # Extending the data with percents and block group columns:
         extended_data = add_percent_columns(raw_data)
         
         if group_criterion:
@@ -72,7 +72,7 @@ class AbstractBlockClassifier:
         self.negative_group = negative_group
         self.set_negative_group(positive_group, negative_group)
         
-        #Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
+        # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
         self.prediction_dict = dict()
         self.confusion_dict = dict()
         

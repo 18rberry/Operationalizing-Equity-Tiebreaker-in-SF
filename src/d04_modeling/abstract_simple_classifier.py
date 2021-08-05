@@ -5,6 +5,15 @@ from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier, 
 class AbstractSimpleClassifier(AbstractBlockClassifier, ABC):
     def __init__(self, columns, positive_group='nFRL', negative_group='nOther', frl_key=_default_frl_key,
                  group_criterion=False, len_BG=8):
+        """
+
+        :param columns: list of columns we want to use for the classifier
+        :param positive_group: column name of the positive counts
+        :param negative_group: column name of the negative counts
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
+        :param group_criterion: aggregate/group block data by neighborhood ('nbhd' or 'block_group')
+        :param len_BG: length of block group code
+        """
         super().__init__(columns=columns,
                          positive_group=positive_group, negative_group=negative_group,
                          frl_key=frl_key,
