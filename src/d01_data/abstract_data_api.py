@@ -36,7 +36,7 @@ class AbstractDataApi:
             file_type = file_name.split(".")[-1]
             path = _raw_file_path + file_name
         else:
-            #In this case the file is in the dssg folder and we need to add the user name to the front:
+            # In this case the file is in the dssg folder and we need to add the user name to the front:
             file_type = file_name.split(".")[-1]
             path = _out_file_path + user + "_" + file_name
 

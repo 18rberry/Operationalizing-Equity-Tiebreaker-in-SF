@@ -1,4 +1,4 @@
-import numpy as np
+import pandas as pd
 import sys
 sys.path.append('../..')
 
@@ -21,8 +21,11 @@ _studentno = 'studentno'
 
 
 _gamma = 2.5
+
+
 def prob_focal_given_block(diversity_index):
     return np.power(diversity_index, _gamma)
+
 
 def float2code(x):
     return  "%i" % x if np.isfinite(x) else "NaN"
@@ -42,6 +45,11 @@ class StudentDataApi(AbstractDataApi):
         pass
     
     def get_period_data(self, period):
+        """
+        Query student data from a particular period
+        :param period: period key
+        :return:
+        """
         if period not in self._cache_data.keys():
             df_raw = self.read_data(_student_file_path.format(period=period))
             df_raw.rename(columns={"N'hood SES Score": 'Nhood SES Score'}, inplace=True)
@@ -51,6 +59,7 @@ class StudentDataApi(AbstractDataApi):
 
     def get_data(self, periods_list=None):
         """
+        Query and concatenate data from multiple periods
         :param periods_list: list of periods, i.e. ["1819", "1920"]
         :return:
         """
@@ -69,6 +78,11 @@ class StudentDataApi(AbstractDataApi):
         return df
     
     def get_data_by_block(self, periods_list=None):
+        """
+        Query data from multiple periods by blocks
+        :param periods_list: list of periods, i.e. ["1819", "1920"]
+        :return:
+        """
         df = self.get_data(periods_list)
         cols = [_period_column, _census_block_column, _studentno]
         df_block = df[cols].groupby([_census_block_column, _period_column]).count()
@@ -79,11 +93,23 @@ class StudentDataApi(AbstractDataApi):
         df_block[_block_features] = df[cols].groupby([_census_block_column, _period_column]).mean().reindex(indx).values
         
         return df_block
-    
-    def get_diversity_index(self, df):
+
+    @staticmethod
+    def get_diversity_index(df: pd.DataFrame):
+        """
+        Query the diversity index
+        :param df: pandas.DataFrame with student data
+        :return:
+        """
         df[_diversity_index_col] = df[_diversity_index_features].mean(axis=1)
-        
-    def get_focal_probability(self, df):
+
+    @staticmethod
+    def get_focal_probability(df: pd.DataFrame):
+        """
+        Query the probability of being focal
+        :param df: pandas.DataFrame with student data
+        :return:
+        """
         df[_prob_col] = df[_diversity_index_col].apply(prob_focal_given_block)
 
 
@@ -93,12 +119,4 @@ if __name__ == "__main__":
     student_data_api = StudentDataApi()
     periods_list = ["1415", "1516", "1617", "1718", "1819", "1920"]
     df = student_data_api.get_data_by_block(periods_list=periods_list)
-    
-    block_index = df.index.get_level_values(_census_block_column).unique()
 
-    np.random.seed(1992)
-    block_ids = np.random.choice(block_index, size=5)
-
-    print(df.loc[(blockgroup_ids, slice(None)), ['count', 'ctip1']].to_string())
-    
-    

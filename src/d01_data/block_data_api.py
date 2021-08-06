@@ -1,6 +1,7 @@
+import numpy as np
 import sys
 sys.path.append('../..')
-
+from src.d00_utils.utils import get_group_value
 from src.d01_data.abstract_data_api import AbstractDataApi
 from collections import defaultdict
 
@@ -33,6 +34,27 @@ _acs_columns = ['ACS 2013-17 est median HH income',
 
 _default_frl_key = 'tk12'
 
+_hhinc_col = 'ACS 2013-17 est median HH income'
+_pov_col = 'ACS 2013-17 est% HH below poverty lvl'
+_bachdeg_col = 'ACS 2013-17 % aged 25+ with Bachelors'
+
+_ses_cols = [_hhinc_col, _pov_col, _bachdeg_col]
+
+_academic_cols = ['num of SBAC L1 scores 4-9 2015-18',
+                 'num of SBAC L2 scores 4-9 2015-18',
+                 'num of SBAC L3 scores 4-9 2015-18',
+                 'num of SBAC L4 scores 4-9 2015-18',
+                 'ttl num 4-9 test takers 2015-18']
+
+_l1_col = 'num of SBAC L1 scores 4-9 2015-18'
+_total_academic_col = 'ttl num 4-9 test takers 2015-18'
+
+_aalpi_col = 'AALPI all TK5 stu 2017'
+
+_tk5_stu_cols = [_aalpi_col, 'non-AALPI all TK5 stu 2017',
+                 # 'DS or ML all TK5 stu 2017', 'All Others all TK5 stu 2017'
+                 ]
+
 
 class BlockDataApi(AbstractDataApi):
     """
@@ -50,6 +72,14 @@ class BlockDataApi(AbstractDataApi):
         self.__cache_demographic = dict()
     
     def load_data(self, sfha=False, frl=False, user=None, frl_key=_default_frl_key):
+        """
+        Load block data
+        :param sfha: boolean to load SFHA data
+        :param frl: boolean to load FRL (focal student) data
+        :param user: Not used anymore
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
+        :return:
+        """
         if sfha:
             if 'data' not in self.__cache_sfha.keys():
                 self.__cache_sfha['fields'] = self.read_data(_block_sfha_file_path + _fields_extension)
@@ -96,6 +126,10 @@ class BlockDataApi(AbstractDataApi):
 
     def get_data(self, sfha=False, frl=False, frl_key=_default_frl_key):
         """
+        Query block data
+        :param sfha: boolean to load SFHA data
+        :param frl: boolean to load FRL (focal student) data
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
         :return:
         """
         self.load_data(sfha=sfha, frl=frl, frl_key=frl_key)
@@ -109,39 +143,53 @@ class BlockDataApi(AbstractDataApi):
             df = self.__cache_demographic['data'].copy()
             return df
         
-    def get_fields(self, sfha=False, frl=False, key=_default_frl_key):
+    def get_fields(self, sfha=False, frl=False, frl_key=_default_frl_key):
         """
+        Query fields data
+        :param sfha: boolean to load SFHA data
+        :param frl: boolean to load FRL (focal student) data
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
         :return:
         """
-        self.load_data(sfha=sfha, frl=frl, frl_key=key)
+        self.load_data(sfha=sfha, frl=frl, frl_key=frl_key)
         if sfha:
             df = self.__cache_sfha['fields'].copy()
             return df
         elif frl:
-            df = self.__cache_frl[key]['fields'].copy()
+            df = self.__cache_frl[frl_key]['fields'].copy()
             return df
         else:
             df = self.__cache_demographic['fields'].copy()
             return df
         
-    def get_fields_for_columns(self, columns, sfha=False, frl=False):
+    def get_fields_for_columns(self, columns, sfha=False, frl=False, frl_key=_default_frl_key):
+        """
+        Query fields fpr specific columns
+        :param columns:
+        :param sfha: boolean to load SFHA data
+        :param frl: boolean to load FRL (focal student) data
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
+        :return:
+        """
         if sfha:
             df = self.__cache_sfha['fields'].copy()
         elif frl:
-            df = self.__cache_frl['fields'].copy()
+            df = self.__cache_frl[frl_key]['fields'].copy()
         else:
             df = self.__cache_demographic['fields'].copy()
         df.set_index('Field Name', inplace=True)
         return df.loc[columns]
-    
-    # classify the columns of the block dataframe according to themes
+
     def get_classification(self, classification="first_round"):
-        
+        """
+        Classify the columns of the block dataframe according to themes
+        :param classification: parameter referring to classification will allow us to experiment with other
+        classifications
+        :return:
+        """
         if not hasattr(self, "_cache_demographic"):
             self.load_data()
-        
-        # parameter referring to classification will allow us to experiment with other classifications.
-        # So far only one.
+
         if classification == "first_round":
 
             field_list = list(self.__cache_demographic['data'].columns)
@@ -190,6 +238,52 @@ class BlockDataApi(AbstractDataApi):
         else:
             print("This classification has not been defined")
             return None
+
+    def get_ses_score(self):
+        """
+        Query SES score for each block group
+        :return: pandas.DataFrame with the SES score of each 'BlockGroup' (coarser to geoid)
+        """
+        df = self.get_data(sfha=False).set_index('Block')
+
+        ses_factors_max = df[_ses_cols].max()
+        block_ses = df[_ses_cols + ['BlockGroup']].groupby('BlockGroup').agg(get_group_value)
+        block_ses = block_ses / ses_factors_max.values[np.newaxis, :]
+        block_ses.columns = ['hhinc', 'pov', 'bachdeg']
+
+        block_ses['metric'] = 1 - block_ses['hhinc'] + block_ses['pov'] + 1 - block_ses['bachdeg']
+        block_ses['score'] = block_ses['metric'] / block_ses['metric'].max()
+
+        return block_ses
+
+    def get_academic_score(self):
+        """
+        Query SES score for each block group
+        :return: pandas.DataFrame with the SES score of each 'BlockGroup' (coarser to geoid)
+        """
+        df = self.get_data(sfha=False).set_index('Block')
+
+        block_academics = df[_academic_cols + ['BlockGroup']].groupby('BlockGroup').sum()
+        block_academics = block_academics / block_academics[_total_academic_col].values[:, np.newaxis]
+        l1_score_max = block_academics[_l1_col].max()
+        block_academics['score'] = block_academics[_l1_col] / l1_score_max
+
+        return block_academics
+
+    def get_aalpi_score(self):
+        """
+        Query SES score for each block group
+        :return: pandas.DataFrame with the SES score of each 'BlockGroup' (coarser to geoid)
+        """
+        df = self.get_data(sfha=False).set_index('Block')
+
+        block_aalpi = df[_tk5_stu_cols + ['BlockGroup']].groupby('BlockGroup').sum()
+
+        block_aalpi['total_tk5'] = block_aalpi[_tk5_stu_cols].sum(axis=1)
+        block_aalpi['aalpi_pct'] = block_aalpi[_aalpi_col] / block_aalpi['total_tk5']
+        block_aalpi['score'] = block_aalpi['aalpi_pct'] / block_aalpi['aalpi_pct'].max()
+
+        return block_aalpi
 
 
 if __name__ == "__main__":
