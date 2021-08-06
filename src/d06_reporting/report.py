@@ -19,16 +19,31 @@ from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier
 
 
 class Report:
+    """
+    Generate main report results
+    """
     __classifier_data_api = ClassifierDataApi()
+
     def __init__(self, frl_key, propositional_params=None,
                  propositional_structure=None):
+        """
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
+        :param propositional_params: list of parameters for the propositional classifier
+        :param propositional_structure: list with the structure of the propositional classifier
+        """
         self.__frl_key = frl_key
         self.__model_dict = self.initialize_models_dict(frl_key, propositional_params,
                                                         propositional_structure)
-        
-        
     
     def heat_map1(self, column, frl_key=None, pct_frl=True, title=""):
+        """
+        Generate heat map of SF for the corresponding column
+        :param column: column with value used for the heat map
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
+        :param pct_frl: load block data with percentage columns for FRL data
+        :param title: title of the plot
+        :return:
+        """
         if frl_key is None:
             self.__classifier_data_api.get_block_data(pct_frl=pct_frl)
         else:
@@ -36,28 +51,34 @@ class Report:
         
         self.__classifier_data_api.get_map_data()
         map_df_data = self.__classifier_data_api.get_map_df_data(cols=[column])
-        map_plot = OrderedDict()
         
         display(HTML("<h3>%s</h3>" % title))
         self.__classifier_data_api.plot_map_column(map_df_data, column, cmap="YlOrRd",
-                                                            save=True, legend=False, title="",
-                                                            show=True)
+                                                   save=True, legend=False, title="",
+                                                   show=True)
     
     @staticmethod    
     def initialize_models_dict(frl_key, propositional_params=None, propositional_structure=None):
+        """
+        Initialize models for report
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
+        :param propositional_params: list of parameters for the propositional classifier
+        :param propositional_structure: list with the structure of the propositional classifier
+        :return:
+        """
         if propositional_structure is None:
             propositional_structure = {'variables': [("pctAALPI", "pctFRL"), "pctBoth"],
-                                    'logic': ["and", "or"]}
+                                       'logic': ["and", "or"]}
         if propositional_params is None:
             propositional_params = [[0.5, 0.6, x] for x in np.linspace(0, 1, num=100)]
                     
         AbstractBlockClassifier().refresh()
         model_dict = OrderedDict()
-        model_dict['Naive'] = {'model': NaiveClassifier(positive_group='nFocal', rate=False, frl_key=frl_key),
+        model_dict['Naive'] = {'model': NaiveClassifier(positive_group='nFocal', proportion=False, frl_key=frl_key),
                                'params': None,
                                'fname': 'naive'}
-        model_dict['Naive (Prop.)'] = {'model': NaiveClassifier(positive_group='nFocal', rate=True,
-                                                               frl_key=frl_key),
+        model_dict['Naive (Prop.)'] = {'model': NaiveClassifier(positive_group='nFocal', proportion=True,
+                                                                frl_key=frl_key),
                                       'params': None,
                                       'fname': 'naivep'}
         model_dict['CTIP1'] = {'model': CtipClassifier(positive_group='nFocal', frl_key=frl_key),
@@ -77,6 +98,10 @@ class Report:
         return model_dict
     
     def classifier_evalutaion_roc(self):
+        """
+        Plot ROC curve for all the models
+        :return:
+        """
         model_dict = self.__model_dict.copy()
         
         results_dict = OrderedDict()
@@ -104,6 +129,10 @@ class Report:
         plt.show()
         
     def classifier_evalutaion_precision_recall(self):
+        """
+        Plot precision/recall curve for all the models
+        :return:
+        """
         model_dict = self.__model_dict.copy()
         
         results_dict = OrderedDict()
@@ -131,6 +160,11 @@ class Report:
         plt.show()
         
     def classification_map(self, fpr):
+        """
+        Plot SF map with the solution/assignment for each model. Propositional classifier is not implemented.
+        :param fpr: Maximum FPR of the solution
+        :return:
+        """
         model_dict = self.__model_dict.copy()
         
         for model_name, model in model_dict.items():
@@ -140,6 +174,3 @@ class Report:
                  model['model'].plot_map(params=fpr, save=True, col=model['fname'])
             else:
                 pass
-
-            
-        
