@@ -29,7 +29,7 @@ class AbstractBlockClassifier:
         :param group_criterion: aggregate/group block data by neighborhood ('nbhd' or 'block_group')
         :param len_BG: length of block group code
         """
-        
+
         self.positive_group = positive_group
         self.negative_group = negative_group
         
@@ -233,7 +233,8 @@ class AbstractBlockClassifier:
             
         return ax
     
-    def get_tiebreaker_map(self, params, col, idx_col="geoid"):
+    def get_tiebreaker_map(self, params, col="tiebreaker", idx_col="geoid"):
+
         """
         Generate SF geodataframe with tiebreaker column of focal blocks for given parameters.
         :param params: solution parameters (particular instance of the classifier)
@@ -276,7 +277,7 @@ class AbstractBlockClassifier:
         ax = self.__classifier_data_api.plot_map_column(map_df_data=map_df_data, col=col, ax=ax,
                                                         legend=False, title=title, save=save)
         return ax
-        
+
     def get_confusion_matrix(self, params):
         """
         Query the confusion matrix for the given parameters
@@ -287,7 +288,7 @@ class AbstractBlockClassifier:
             params_key = tuple(params)
         else:
             params_key = params
-            
+
         if params_key in self.confusion_dict.keys():
             confusion_matrix = self.confusion_dict[params_key]
         else:
@@ -297,15 +298,15 @@ class AbstractBlockClassifier:
             col = 'Real\Pred'
             data[col] = 0
             data.loc[solution_set, col] = 1
-            
+
             confusion_matrix = data.groupby(col).sum()
             confusion_matrix = confusion_matrix.transpose()
-            
+
             if 0 not in confusion_matrix.columns:
                 confusion_matrix[0] = 0
             if 1 not in confusion_matrix.columns:
                 confusion_matrix[1] = 0
-            
+
             confusion_matrix = confusion_matrix[[1, 0]]
             self.confusion_dict[params_key] = confusion_matrix
             
@@ -362,3 +363,24 @@ class AbstractBlockClassifier:
         """
         confusion_matrix_arr = self.get_confusion_matrix(params).values
         return confusion_matrix_arr[0,0]/(confusion_matrix_arr[0,0] + confusion_matrix_arr[1,0])
+
+    def intersection_tpr(self, params):
+
+        if self.positive_group == "nBoth":
+            return self.tpr(params)
+
+        else:
+
+            data = self.full_data.copy()[["nBoth"]]
+
+            solution_set = self.get_solution_set(params)
+            col = 'tiebreaker'
+            data[col] = 0
+            data.loc[solution_set, col] = 1
+
+            grouped_data = data.groupby(col).sum()
+            grouped_data_arr = grouped_data.values
+
+            inter_tpr = grouped_data_arr[1]/(grouped_data_arr[0] + grouped_data_arr[1])
+
+        return inter_tpr[0]
