@@ -72,6 +72,14 @@ class BlockDataApi(AbstractDataApi):
         self.__cache_demographic = dict()
     
     def load_data(self, sfha=False, frl=False, user=None, frl_key=_default_frl_key):
+        """
+        Load block data
+        :param sfha: boolean to load SFHA data
+        :param frl: boolean to load FRL (focal student) data
+        :param user: Not used anymore
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
+        :return:
+        """
         if sfha:
             if 'data' not in self.__cache_sfha.keys():
                 self.__cache_sfha['fields'] = self.read_data(_block_sfha_file_path + _fields_extension)
@@ -118,6 +126,10 @@ class BlockDataApi(AbstractDataApi):
 
     def get_data(self, sfha=False, frl=False, frl_key=_default_frl_key):
         """
+        Query block data
+        :param sfha: boolean to load SFHA data
+        :param frl: boolean to load FRL (focal student) data
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
         :return:
         """
         self.load_data(sfha=sfha, frl=frl, frl_key=frl_key)
@@ -131,39 +143,53 @@ class BlockDataApi(AbstractDataApi):
             df = self.__cache_demographic['data'].copy()
             return df
         
-    def get_fields(self, sfha=False, frl=False, key=_default_frl_key):
+    def get_fields(self, sfha=False, frl=False, frl_key=_default_frl_key):
         """
+        Query fields data
+        :param sfha: boolean to load SFHA data
+        :param frl: boolean to load FRL (focal student) data
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
         :return:
         """
-        self.load_data(sfha=sfha, frl=frl, frl_key=key)
+        self.load_data(sfha=sfha, frl=frl, frl_key=frl_key)
         if sfha:
             df = self.__cache_sfha['fields'].copy()
             return df
         elif frl:
-            df = self.__cache_frl[key]['fields'].copy()
+            df = self.__cache_frl[frl_key]['fields'].copy()
             return df
         else:
             df = self.__cache_demographic['fields'].copy()
             return df
         
-    def get_fields_for_columns(self, columns, sfha=False, frl=False):
+    def get_fields_for_columns(self, columns, sfha=False, frl=False, frl_key=_default_frl_key):
+        """
+        Query fields fpr specific columns
+        :param columns:
+        :param sfha: boolean to load SFHA data
+        :param frl: boolean to load FRL (focal student) data
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
+        :return:
+        """
         if sfha:
             df = self.__cache_sfha['fields'].copy()
         elif frl:
-            df = self.__cache_frl['fields'].copy()
+            df = self.__cache_frl[frl_key]['fields'].copy()
         else:
             df = self.__cache_demographic['fields'].copy()
         df.set_index('Field Name', inplace=True)
         return df.loc[columns]
-    
-    # classify the columns of the block dataframe according to themes
+
     def get_classification(self, classification="first_round"):
-        
+        """
+        Classify the columns of the block dataframe according to themes
+        :param classification: parameter referring to classification will allow us to experiment with other
+        classifications
+        :return:
+        """
         if not hasattr(self, "_cache_demographic"):
             self.load_data()
-        
-        # parameter referring to classification will allow us to experiment with other classifications.
-        # So far only one.
+
         if classification == "first_round":
 
             field_list = list(self.__cache_demographic['data'].columns)

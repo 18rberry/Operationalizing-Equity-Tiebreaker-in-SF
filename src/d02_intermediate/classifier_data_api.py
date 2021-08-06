@@ -26,9 +26,19 @@ class ClassifierDataApi:
         pass
     
     def refresh(self):
+        """
+        Reset the block data
+        :return:
+        """
         self.__block_data = None
     
     def get_block_data(self, frl_key=_default_frl_key, pct_frl=False):
+        """
+        Query block data from all three sources.
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
+        :param pct_frl: boolean to add the percent values of the frl variables
+        :return:
+        """
         if self.__block_data is None:
             e = time()
             print("Loading Block FRL data...", end="")
@@ -55,7 +65,10 @@ class ClassifierDataApi:
         
         return self.__block_data.copy()
     
-    def get_map_data(self):       
+    def get_map_data(self):
+        """
+        Query map data used to build the geographic maps
+        """
         if self.__map_data is None:
             geodata_path = '/share/data/school_choice/dssg/census2010/'
             file_name = 'geo_export_e77bce0b-6556-4358-b36b-36cfcf826a3c'
@@ -70,6 +83,11 @@ class ClassifierDataApi:
         return self.__map_data
     
     def get_map_df_data(self, cols):
+        """
+        Append block data to the map data geopandas.DataFrame
+        :param cols: Columns from block data that should be appended to the map data
+        :return:
+        """
         block_data = self.get_block_data()
         map_data = self.get_map_data()
         
@@ -84,6 +102,11 @@ class ClassifierDataApi:
 
     @staticmethod
     def get_frl_data(frl_key=_default_frl_key):
+        """
+        Query FRL data
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
+        :return:
+        """
         frl_df = block_data_api.get_data(frl=True, frl_key=frl_key).set_index('Geoid10')
         # print(frl_df)
         frl_df.index.name = geoid_name
@@ -106,6 +129,10 @@ class ClassifierDataApi:
 
     @staticmethod
     def get_demo_data():
+        """
+        Query demographic data
+        :return:
+        """
         demo_df = block_data_api.get_data().set_index('Block')[['BlockGroup',
                                                                 'CTIP_2013 assignment',
                                                                 'SF Analysis Neighborhood']].dropna(subset=['BlockGroup'])
@@ -117,6 +144,10 @@ class ClassifierDataApi:
 
     @staticmethod
     def get_student_data():
+        """
+        Query student data
+        :return:
+        """
         df_students = student_data_api.get_data(periods_list)
         mask = df_students[_census_block_column] == 'NaN'
         df_students.drop(df_students.index[mask], inplace=True)
@@ -128,7 +159,20 @@ class ClassifierDataApi:
     
     @staticmethod
     def plot_map_column(map_df_data, col, cmap="viridis", ax=None, save=False,
-                        fig=None, title=None, legend=False, show=True):
+                        fig=None, title=None, legend=True, show=True):
+        """
+        Plot map data with color set to the columns `col`
+        :param map_df_data: geopandas.DataFrame of SFUSD
+        :param col: column of `map_df_data` with the value of interest
+        :param cmap: color map for the plot
+        :param ax: (optional) axis values. Must also provide `fig` value
+        :param save: boolean to save the plot
+        :param fig: (optional) figure values. Must also provide `ax` value
+        :param title: title of the figure
+        :param legend: boolean to show legend of the plot
+        :param show: boolean to show the figure
+        :return:
+        """
 
         if ax is None:
             fig, ax = plt.subplots(figsize=(4.8,4.8))

@@ -10,6 +10,9 @@ _classifier_columns = ['n', 'nFRL', 'nAALPI', 'nBoth', 'nFocal']
 
 
 class AbstractBlockClassifier:
+    """
+    Abstract class for block classification models.
+    """
     map_data = None
     __classifier_data_api = ClassifierDataApi()
     
@@ -17,11 +20,20 @@ class AbstractBlockClassifier:
                  positive_group='nFocal', negative_group='nOther',
                  user=None, frl_key=_default_frl_key,
                  group_criterion=False, len_BG=8):
+      
+        :param columns: columns: list of columns we want to use for the classifier
+        :param positive_group: column name of the positive counts
+        :param negative_group: column name of the negative counts
+        :param user: not used
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
+        :param group_criterion: aggregate/group block data by neighborhood ('nbhd' or 'block_group')
+        :param len_BG: length of block group code
+        """
 
         self.positive_group = positive_group
         self.negative_group = negative_group
-
-        #Ensure the columns list contains what we want:
+        
+        # Ensure the columns list contains what we want:
         if columns is None:
             columns = [positive_group, negative_group]
         else:
@@ -30,23 +42,24 @@ class AbstractBlockClassifier:
             if negative_group not in columns:
                 columns.append(negative_group)
 
-        #Getting the raw data from classifier api:
+        # Getting the raw data from classifier api:
         raw_data = self.__classifier_data_api.get_block_data(frl_key=frl_key)
 
         self.raw_data = raw_data
         
-        #Adding the negative group column:
+        # Adding the negative group column:
         raw_data[self.negative_group] = raw_data['n'] - raw_data[self.positive_group]
 
-        #Extending the data with percents and block group columns:
+        
+        # Extending the data with percents and block group columns:
         extended_data = add_percent_columns(raw_data)
         
         if group_criterion:
             extended_data = add_group_columns(extended_data, group_criterion, len_BG, positive_group)
 
         self.full_data = extended_data
-
-        #Selecting columns according to the block group criterion:
+        
+        # Selecting columns according to the block group criterion:
         if group_criterion == "nbhd":
             data = extended_data[['n', 'Neighborhood', *columns]]
         elif group_criterion == "block_group":
@@ -61,27 +74,39 @@ class AbstractBlockClassifier:
         self.negative_group = negative_group
         self.set_negative_group(positive_group, negative_group)
         
-        #Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
+        # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
         self.prediction_dict = dict()
         self.confusion_dict = dict()
 
     def set_negative_group(self, positive_group, negative_group):
+        """
+        Update the negative group column
+        :param positive_group: column name of the positive counts
+        :param negative_group: column name of the negative counts
+        :return:
+        """
         # can I use this to plot ROC and precision/recall curves for different definitions of focal groups?
         self.data[negative_group] = self.data['n'] - self.data[positive_group]
 
     def refresh(self):
+        """
+        Reset the block data
+        :return:
+        """
         self.__classifier_data_api.refresh()
     
     def get_solution_set(self, params):
         """
-        returns pandas.Index with blocks subset for a given parameters list.
+        Returns pandas.Index with blocks subset for a given parameters list.
         """
         raise NotImplementedError("get_solution_set method not implemented for abstract class")
         
-    def get_roc(self, param_arr):
+    def get_roc(self, param_arr: list):
         """
-        returns pandas.DataFrame with 'tpr' and 'fpr' columns, each row corresponds to a point in 
+        Computes the 'tpr' and 'fpr' of the classifier. Each row corresponds to a point in
         a provided parameter array.
+        :param param_arr: list with parameters
+        :return: pandas.DataFrame
         """
         tpr_arr = []
         fpr_arr = []
@@ -92,11 +117,13 @@ class AbstractBlockClassifier:
             tpr_arr.append(tpr)
 
         return pd.DataFrame(data=np.array([tpr_arr, fpr_arr]).T, columns=["tpr", "fpr"])
-
-    def get_precision_recall(self, param_arr):
+    
+    def get_precision_recall(self, param_arr: list):
         """
-        returns pandas.DataFrame with 'presicion' and 'recall' columns, each row corresponds to a point in
+        Computes the 'precision' and 'recall' of the classifier. Each row corresponds to a point in
         a provided parameter array.
+        :param param_arr: list with parameters
+        :return: pandas.DataFrame
         """
         recall_arr = []
         precision_arr = []
@@ -109,8 +136,14 @@ class AbstractBlockClassifier:
         return pd.DataFrame(data=np.array([recall_arr, precision_arr]).T, columns=["recall", "precision"])
 
     def plot_roc(self, param_arr, ax=None):
+        """
+        Plot the ROC curve of the classifier.
+        :param param_arr: list with parameters
+        :param ax: matplotlib.axes._subplots.AxesSubplot
+        :return:
+        """
         if ax is None:
-            fig, ax = plt.subplots(figsize=(25,25))
+            fig, ax = plt.subplots(figsize=(25, 25))
             
         df = self.get_roc(param_arr)
         data_fpr = df["fpr"].values
@@ -128,15 +161,18 @@ class AbstractBlockClassifier:
         
         return ax
     
-    def get_heatmap(self, param_arr1, param_arr2=None):
+    def get_heatmap(self, param_arr1: list, param_arr2=None):
         """
-        returns tuple of numpy.Array with 'fpr' and 'fnr' rates respectively, each row and column 
+        Returns tuple of numpy.Array with 'fpr' and 'fnr' rates respectively, each row and column
         corresponds to a parameter in the param array.
+        :param param_arr1: list with parameters
+        :param param_arr2: second list with parameters (optional)
+        :return: returns np.arrays with 'fpr' and 'fnr' respectivly
         """
         # In case we did not specify values for second parameter, use the same as first:
         if param_arr2 is None:
             param_arr2 = param_arr1
-        
+
         heat_fpr = []
         heat_fnr = []
         # Iterate over all pairwise parameters:
@@ -149,19 +185,27 @@ class AbstractBlockClassifier:
                 row_fnr.append(self.fnr(params))
             heat_fpr.append(row_fpr)
             heat_fnr.append(row_fnr)
-        
+
         # Build array by reversing the row order:
         heat_fpr = np.flipud(np.array(heat_fpr))
-        heat_fnr = np.flipud(np.array(heat_fnr))            
+        heat_fnr = np.flipud(np.array(heat_fnr))
                 
-        return (heat_fpr, heat_fnr)
+        return heat_fpr, heat_fnr
     
-    def plot_heatmap(self, param_arr1, param_arr2=None, Axes=None):
+    def plot_heatmap(self, param_arr1, param_arr2=None, ax=None):
+        """
+        Returns tuple of numpy.Array with 'fpr' and 'fnr' rates respectively, each row and column
+        corresponds to a parameter in the param array.
+        :param param_arr1: list with parameters
+        :param param_arr2: second list with parameters (optional)
+        :param ax: matplotlib.axes._subplots.AxesSubplot
+        :return: matplotlib.axes._subplots.AxesSubplot
+        """
         
         import seaborn as sns
         
-        if Axes is None:
-            fig, Axes = plt.subplots(figsize=(60,30), ncols=2)
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(60, 30), ncols=2)
         
         if param_arr2 is None:
             param_arr2 = param_arr1
@@ -174,27 +218,31 @@ class AbstractBlockClassifier:
         ax_fpr = sns.heatmap(heat_fpr,
                              vmin=0, vmax=1, cmap="YlOrRd", square=sq,
                              xticklabels=param_arr1, yticklabels=param_arr2[::-1],
-                             ax=Axes[0], cbar=False,
+                             ax=ax[0], cbar=False,
                              annot=True, annot_kws={"fontsize":20}, fmt=".2%")
 
         ax_fnr = sns.heatmap(heat_fnr,
                              vmin=0, vmax=1, cmap="YlOrRd", square=sq,
                              xticklabels=param_arr1, yticklabels=param_arr2[::-1],
-                             ax=Axes[1], cbar=False,
+                             ax=ax[1], cbar=False,
                              annot=True, annot_kws={"fontsize":20}, fmt=".2%")
 
         titles = ["False Positive Rate", "False Negative Rate"]
-        for i, ax in enumerate(Axes.ravel()):
+        for i, ax in enumerate(ax.ravel()):
             ax.set_title(titles[i], fontsize=40)
-            ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
-            ax.set_yticklabels(ax.get_ymajorticklabels(), fontsize = 20)
+            ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize=20)
+            ax.set_yticklabels(ax.get_ymajorticklabels(), fontsize=20)
             
-        return Axes
+        return ax
     
     def get_tiebreaker_map(self, params, col="tiebreaker", idx_col="geoid"):
 
         """
-        returns SF geodataframe with 'tiebreaker' column of focal blocks for a given parameters list.
+        Generate SF geodataframe with tiebreaker column of focal blocks for given parameters.
+        :param params: solution parameters (particular instance of the classifier)
+        :param col: column name used for the tiebreaker
+        :param idx_col: column to use as index to assing the tiebreaker to each block
+        :return:
         """
         if self.map_data is None:
             self.map_data = self.__classifier_data_api.get_map_df_data(cols=[idx_col])
@@ -213,7 +261,14 @@ class AbstractBlockClassifier:
 
     def plot_map(self, params, ax=None, save=False, title="", col='tiebreaker', idx_col='geoid'):
         """
-        returns ax with map of focal blocks for a given parameters list.
+
+        :param params: solution parameters (particular instance of the classifier)
+        :param ax: matplotlib.axes._subplots.AxesSubplot
+        :param save: boolean used to save the plot
+        :param title: plot title
+        :param col: column name used for the tiebreaker
+        :param idx_col: column to use as index to assing the tiebreaker to each block (not used)
+        :return: matplotlib.axes._subplots.AxesSubplot
         """
         
         map_df_data = self.get_tiebreaker_map(params, col)
@@ -234,10 +289,12 @@ class AbstractBlockClassifier:
 
         ax = self.__classifier_data_api.plot_map_column(map_df_data, col="New Gent", cmap="YlOrRd", ax=ax)
         return ax
-
+        
     def get_confusion_matrix(self, params):
         """
-        returns pandas.DataFrame with confusion matrix for a given parameter list
+        Query the confusion matrix for the given parameters
+        :param params: solution parameters (particular instance of the classifier)
+        :return: pandas.DataFrame
         """
         if isinstance(params, Iterable):
             params_key = tuple(params)
@@ -268,34 +325,64 @@ class AbstractBlockClassifier:
         return confusion_matrix
     
     def fpr(self, params):
+        """
+        Query the FPR
+        :param params: solution parameters (particular instance of the classifier)
+        :return:
+        """
         confusion_matrix_arr = self.get_confusion_matrix(params).values
         return confusion_matrix_arr[1,0]/(confusion_matrix_arr[1,1] + confusion_matrix_arr[1,0])
     
     def fnr(self, params):
+        """
+        Query the FNR
+        :param params: solution parameters (particular instance of the classifier)
+        :return:
+        """
         confusion_matrix_arr = self.get_confusion_matrix(params).values
         return confusion_matrix_arr[0,1]/(confusion_matrix_arr[0,0] + confusion_matrix_arr[0,1])
     
     def tpr(self, params):
+        """
+        Query the TPR
+        :param params: solution parameters (particular instance of the classifier)
+        :return:
+        """
         return 1 - self.fnr(params)
     
     def tnr(self, params):
+        """
+        Query the TNR
+        :param params: solution parameters (particular instance of the classifier)
+        :return:
+        """
         return 1 - self.fpr(params)
 
     def recall(self, params):
+        """
+        Query the recall
+        :param params: solution parameters (particular instance of the classifier)
+        :return:
+        """
         confusion_matrix_arr = self.get_confusion_matrix(params).values
         return confusion_matrix_arr[0,0]/(confusion_matrix_arr[0,0] + confusion_matrix_arr[0,1])
 
     def precision(self, params):
+        """
+        Query the precision
+        :param params: solution parameters (particular instance of the classifier)
+        :return:
+        """
         confusion_matrix_arr = self.get_confusion_matrix(params).values
         return confusion_matrix_arr[0,0]/(confusion_matrix_arr[0,0] + confusion_matrix_arr[1,0])
-    
+
     def intersection_tpr(self, params):
-        
+
         if self.positive_group == "nBoth":
             return self.tpr(params)
-        
+
         else:
-            
+
             data = self.full_data.copy()[["nBoth"]]
 
             solution_set = self.get_solution_set(params)
@@ -305,8 +392,7 @@ class AbstractBlockClassifier:
 
             grouped_data = data.groupby(col).sum()
             grouped_data_arr = grouped_data.values
-            
+
             inter_tpr = grouped_data_arr[1]/(grouped_data_arr[0] + grouped_data_arr[1])
-            
         return inter_tpr[0]
 

@@ -8,8 +8,25 @@ from tqdm import trange
 _cache_path = '../src/d04_modeling/cache/'
 _default_fname = 'value_function.pkl'
 
+
 class KnapsackApprox:
+    """
+    This algorithm finds a subset of items whose total weight does
+    not exceed W, with total value at most a (1+`eps`) factor below the maximum possible. This algorithm uses a
+    a dynamic programming algorithm for the case when the values are small, even if the weights may be big. This
+    algorithm has running time O(n^2v_max) with v_max the maximum value. This means that of the values range is
+    small (v_max is small) the approximation is not necesarry. This implementatio is based on the content from
+    Chapter 11 Section 11.8 of Algorithm Design by J. Kleinberg and E. Tardos.
+    """
     def __init__(self, eps, data: pd.DataFrame, value_col, weight_col, scale=True):
+        """
+        Implementation of the algorithm Knapsack-Approx.
+        :param eps: approximation factorapproximate solution
+        :param data: data indexed by the names of the items (i.e. block or group identifiers)
+        :param value_col: column to be used as values for the items
+        :param weight_col: column to be used as weights for the items
+        :param scale: boolean to use approximation if values range is large
+        """
         data.sort_values(value_col, inplace=True)
         self.value_col = value_col
         self.weight_col = weight_col
@@ -35,7 +52,10 @@ class KnapsackApprox:
         self.value_function = np.zeros((n, self.v['cumsum'].iloc[-1]+1)) + np.nan
 
     def solve(self):
-
+        """
+        Use dynamic programming to compute the value function
+        :return:
+        """
         self.value_function[:, 0] = 0
 
         for i in trange(self.n):
@@ -56,6 +76,13 @@ class KnapsackApprox:
         return None
 
     def get_values(self, i, v):
+        """
+        Query value function (weight) for a given item `i` and value `v`. In this case the value function is the the
+        minimum total weight of the combination of items 1..i that has total value `v`.
+        :param i: numerical index of item
+        :param v: accumulated value
+        :return:
+        """
         if i < 0:
             return 0.
         w = self.value_function[i, v]
@@ -65,6 +92,11 @@ class KnapsackApprox:
             return 0.
 
     def get_solution(self, w_max):
+        """
+        Obtain solution set from max weight constraint.
+        :param w_max: maximum weight constraint
+        :return: maximum value and list of (real) index of items in the optimal subset
+        """
         solution_set = []
 
         v_opt = np.max(np.argwhere(self.value_function[-1][:] <= w_max).flatten())
@@ -84,6 +116,10 @@ class KnapsackApprox:
         return v_opt, solution_set
     
     def get_value_per_weight(self):
+        """
+        Query maximum values obtained for different maximum weights.
+        :return: pandas.DataFrame
+        """
         solution_weights = self.value_function[-1][:]
         results = pd.Series(solution_weights, name='weights')
         results.index.name = 'values'
@@ -92,12 +128,22 @@ class KnapsackApprox:
         return results.groupby('weights').max()
     
     def save_value_function(self, fname=None):
+        """
+        Save value function solution
+        :param fname: file name
+        :return:
+        """
         if fname is None:
             pd.DataFrame(self.value_function).to_pickle(_cache_path + _default_fname)
         else:
             pd.DataFrame(self.value_function).to_pickle(_cache_path + fname)
             
     def load_value_function(self, fname=None):
+        """
+        Load value function solution
+        :param fname: file name
+        :return:
+        """
         if fname is None:
             df = pd.read_pickle(_cache_path + _default_fname)
         else:
