@@ -36,7 +36,7 @@ class KnapsackClassifier(AbstractSimpleClassifier):
         else:
             self.solver.solve()
             self.solver.save_value_function(fname=run_name)
-            
+
     def get_results(self):
         """
         Query results of the classifier
@@ -46,9 +46,23 @@ class KnapsackClassifier(AbstractSimpleClassifier):
         
         results.reset_index(inplace=True)
         results.rename(columns={'values': 'tp', 'weights': 'fp'}, inplace=True)
-        
+
         return results
+
+    def get_roc(self, param_arr=None):
+        results = self.get_results()
+        results['tpr'] = results['tp'] / self.data[self.positive_group].sum()
+        results['fpr'] = results['fp'] / self.data[self.negative_group].sum()
+        
+        return results[['fpr', 'tpr']]
     
+    def get_precision_recall(self):
+        results = self.get_results()
+        results['recall'] = results['tp'] / self.data[self.positive_group].sum()
+        results['precision'] = results['tp'] / (results['tp'] + results['fp'])
+
+        return results[['recall', 'precision']]
+
     def get_solution_set(self, fpr):
         """
         Query the solution for a particular FPR level

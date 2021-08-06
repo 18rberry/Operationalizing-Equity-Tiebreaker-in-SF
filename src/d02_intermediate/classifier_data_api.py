@@ -63,7 +63,7 @@ class ClassifierDataApi:
             
             self.__block_data = df
         
-        return self.__block_data.copy()        
+        return self.__block_data.copy()
     
     def get_map_data(self):
         """
@@ -93,9 +93,9 @@ class ClassifierDataApi:
         
         if cols == [geoid_name]:
             map_df_data = map_data.reindex(block_data.index)
-            
+
         else:
-            map_df_data = pd.concat([map_data.reindex(block_data.index), block_data[cols]], 
+            map_df_data = pd.concat([map_data.reindex(block_data.index), block_data[cols]],
                                      axis=1, ignore_index=False)
         
         return map_df_data
@@ -190,6 +190,29 @@ class ClassifierDataApi:
             plt.tight_layout()
             plt.show()
         
+        if save:
+            fname = 'outputs/' + col + '.png'
+            fig.savefig(fname)
+
+        return ax
+
+    @staticmethod
+    def plot_map_column_new(map_df_data, col, cmap="YlOrRd", ax=None, save=False, fig=None,
+                            title=None, legend=True, show=True):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(4.8,4.8))
+            save = True
+        map_df_data.plot(column=col, ax=ax, cmap=cmap, marker = 'o', color = 'black',
+                         legend=legend, legend_kwds={'orientation': "horizontal"},
+                         missing_kwds={'color': 'lightgrey'})
+        if title is None:
+            ax.set_title(col, fontsize=12)
+        else:
+            ax.set_title(title, fontsize=12)
+        if show:
+            plt.axis('off')
+            plt.tight_layout()
+            plt.show()
         if save:
             fname = 'outputs/' + col + '.png'
             fig.savefig(fname)

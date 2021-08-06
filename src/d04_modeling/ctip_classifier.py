@@ -31,8 +31,22 @@ class CtipClassifier(AbstractSimpleClassifier):
         """
         results = self.data.loc[self.solution_set].sum().to_frame().T        
         results.rename(columns={self.positive_group: 'tp', self.negative_group: 'fp'}, inplace=True)
-        
+
         return results
+
+    def get_roc(self):
+        results = self.get_results()
+        results['tpr'] = results['tp'] / self.data[self.positive_group].sum()
+        results['fpr'] = results['fp'] / self.data[self.negative_group].sum()
+        
+        return results[['fpr', 'tpr']]
     
+    def get_precision_recall(self):
+        results = self.get_results()
+        results['recall'] = results['tp'] / self.data[self.positive_group].sum()
+        results['precision'] = results['tp'] / (results['tp'] + results['fp'])
+
+        return results[['recall', 'precision']]
+
     def get_solution_set(self, fpr=None):
         return self.solution_set

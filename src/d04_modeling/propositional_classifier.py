@@ -53,7 +53,7 @@ def unravel_list(features_list, l=[]):
 
 
 class PropositionalClassifier(AbstractBlockClassifier):
-    
+
     def __init__(self, features, operators, comparisors=None,
                  positive_group="nFocal", negative_group="nOther",
                  user="", frl_key=_default_frl_key,
@@ -71,7 +71,7 @@ class PropositionalClassifier(AbstractBlockClassifier):
                                          positive_group=self.positive_group, negative_group=self.negative_group,
                                          user=user, frl_key=frl_key,
                                          group_criterion=group_criterion, len_BG=len_BG)
-        
+
         self.add_proposition(features, operators, comparisors)
 
     def add_proposition(self, features, operators, comparisors=None):
@@ -159,7 +159,7 @@ class orClassifier(PropositionalClassifier):
     
     def __init__(self, features, comparisors=None,
                  positive_group="nFocal", negative_group="nOther",
-                 user="", frl_key=_default_frl_key, 
+                 user="", frl_key=_default_frl_key,
                  group_criterion=False, len_BG=8):
         
         operators = ["or"]*(len(features) - 1)
