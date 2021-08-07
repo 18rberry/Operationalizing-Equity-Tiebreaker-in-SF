@@ -326,7 +326,7 @@ class SimulationEvaluation:
                     showfliers = False)
         sns.despine(offset=10, trim=False)
         plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
-        plt.savefig('notebooks/outputs/boxplot_simulations_change.png')
+        plt.savefig('outputs/boxplot_simulations_change.png')
         plt.show()
 
         display(df_change.groupby(['method', self.__tiebreaker_status])['change'].agg(['mean', 'median', 'count', 'std']))
@@ -344,7 +344,7 @@ class SimulationEvaluation:
                     showfliers = False)
         sns.despine(offset=10, trim=False)
         plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
-        plt.savefig('notebooks/outputs/boxplot_simulations_tp.png')
+        plt.savefig('outputs/boxplot_simulations_tp.png')
         plt.show()
 
         display(df_tp.groupby(['method', 'label'])['rank'].agg(['mean', 'median', 'count', 'std']))
@@ -361,7 +361,7 @@ class SimulationEvaluation:
 
         ax = sns.histplot(x=x_axis, hue=hue, data=self.__rank_results_df, multiple="dodge", shrink=.8,
                           stat="probability", common_norm=False)
-        plt.savefig('notebooks/outputs/tiebreaker_distribution_prob.png')
+        plt.savefig('outputs/tiebreaker_distribution_prob.png')
         plt.show()
 
     def rank_results_bar_plot_by_method(self, x_axis=None, hue=None):
@@ -403,6 +403,7 @@ class SimulationEvaluation:
         df = df.groupby('studentno').mean()
         y = df['rank'].copy()
         x = df.copy().drop(columns=['iteration', 'rank', self.__focal_block, 'focal'])
+        x['intercept'] = 1.
         model = sm.OLS(y, x)
         results = model.fit()
         display(HTML("<h3>Tiebreaker: %s</h3>" % equity_tiebreaker))
