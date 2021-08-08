@@ -17,6 +17,11 @@ block_data_api = BlockDataApi()
 periods_list = ["1415", "1516", "1617", "1718", "1819", "1920"]
 student_data_api = StudentDataApi()
 
+#Those are the demographic columns we want:
+block_columns = ['BlockGroup','CTIP_2013 assignment','SF Analysis Neighborhood','SFHA_ex_Sr']
+block_columns_rename = {'CTIP_2013 assignment': 'CTIP13',
+                        'SF Analysis Neighborhood':'Neighborhood',
+                        'SFHA_ex_Sr':'Housing'}
 
 class ClassifierDataApi:
     __block_data = None
@@ -133,11 +138,16 @@ class ClassifierDataApi:
         Query demographic data
         :return:
         """
-        demo_df = block_data_api.get_data().set_index('Block')[['BlockGroup',
-                                                                'CTIP_2013 assignment',
-                                                                'SF Analysis Neighborhood']].dropna(subset=['BlockGroup'])
-        demo_df.rename(columns={'CTIP_2013 assignment': 'CTIP13',
-                                'SF Analysis Neighborhood':'Neighborhood'}, inplace=True)
+        
+        #Collect the meaningful demographic columns:
+        demo_df = block_data_api.get_data().set_index('Block')[block_columns].dropna(subset=['BlockGroup'])
+        #Clean the SFHA column:
+        demo_df = demo_df.replace({'SFHA_ex_Sr': {'yes': True, 'no': False}})
+        
+        #Rename the columns for easier acces:
+        demo_df.rename(columns=block_columns_rename, inplace=True)
+        
+        #Set index as geoid
         demo_df.index.name = geoid_name
         
         return demo_df
