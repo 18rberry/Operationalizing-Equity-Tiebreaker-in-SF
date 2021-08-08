@@ -20,7 +20,7 @@ class AbstractBlockClassifier:
                  positive_group='nFocal', negative_group='nOther',
                  user=None, frl_key=_default_frl_key,
                  group_criterion=False, len_BG=8):
-      
+        """
         :param columns: columns: list of columns we want to use for the classifier
         :param positive_group: column name of the positive counts
         :param negative_group: column name of the negative counts
