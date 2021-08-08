@@ -66,9 +66,9 @@ class NaiveClassifier(AbstractBlockClassifier):
         results = self.results.copy()      
         results['recall'] = results['tp'] / self.data[self.positive_group].sum()
         results['precision'] = results['tp'] / (results['tp'] + results['fp'])
-        
+
         return results
-    
+
     def get_solution_set(self, fpr):
         """
         Query the solution for a particular FPR level
