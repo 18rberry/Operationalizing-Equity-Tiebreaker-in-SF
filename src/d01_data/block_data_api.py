@@ -69,9 +69,10 @@ class BlockDataApi(AbstractDataApi):
         super().__init__()
         self.__cache_sfha = dict()
         self.__cache_frl = defaultdict(lambda: dict())
+        self.__cache_redline = dict()
         self.__cache_demographic = dict()
     
-    def load_data(self, sfha=False, frl=False, user=None, frl_key=_default_frl_key):
+    def load_data(self, sfha=False, frl=False, redline=False, user=None, frl_key=_default_frl_key):
         """
         Load block data
         :param sfha: boolean to load SFHA data
@@ -123,6 +124,11 @@ class BlockDataApi(AbstractDataApi):
                 # Clean the Fields dataframe from NaN columns and rows:
                 self.__cache_demographic['fields'] = self.__cache_demographic['fields'].dropna(axis=0, how='all')
                 self.__cache_demographic['fields'] = self.__cache_demographic['fields'].dropna(axis=1, how='all')
+        
+        #Adds the redline status (HOLC grade D) to appropriate blocks:
+        if redline:
+            redlining_gdf_raw = gpd.read_file("/share/data/school_choice_equity/data/CASanFrancisco1937.geojson")
+            redlining_gdf = redlining_gdf_raw.dissolve(by='holc_grade').to_crs(sf_gdf.crs)
 
     def get_data(self, sfha=False, frl=False, frl_key=_default_frl_key):
         """

@@ -71,7 +71,8 @@ class PropositionalClassifier(AbstractBlockClassifier):
     def __init__(self, features, operators, comparisors=None, binary_var=None,
                  positive_group="nFocal", negative_group="nOther",
                  user="", frl_key=_default_frl_key,
-                 group_criterion=False, len_BG=8):
+                 group_criterion=False, len_BG=8,
+                 eligibility_classifier=None, eligibility_params=[]):
 
         #First we need to obtain a list of columns from our features:
         self.features = unravel_list(features, [])
@@ -84,7 +85,8 @@ class PropositionalClassifier(AbstractBlockClassifier):
         AbstractBlockClassifier.__init__(self, self.features,
                                          positive_group=self.positive_group, negative_group=self.negative_group,
                                          user=user, frl_key=frl_key,
-                                         group_criterion=group_criterion, len_BG=len_BG)
+                                         group_criterion=group_criterion, len_BG=len_BG,
+                                         eligibility_classifier=eligibility_classifier, eligibility_params=eligibility_params)
         
         self.add_proposition(features, operators, comparisors, binary_var)
         
@@ -167,13 +169,15 @@ class andClassifier(PropositionalClassifier):
     def __init__(self, features, comparisors=None, binary_var=None,
                  positive_group="nFocal", negative_group="nOther",
                  user="", frl_key=_default_frl_key,
-                 group_criterion=False, len_BG=8):
+                 group_criterion=False, len_BG=8,
+                 eligibility_classifier=None, eligibility_params=[]):
         
         operators = ["and"]*(len(features) - 1)
         PropositionalClassifier.__init__(self, features, operators, comparisors, binary_var,
                                          positive_group, negative_group,
                                          user=user, frl_key=frl_key,
-                                         group_criterion=group_criterion, len_BG=len_BG)
+                                         group_criterion=group_criterion, len_BG=len_BG,
+                                         eligibility_classifier=eligibility_classifier, eligibility_params=eligibility_params)
 
 
 class orClassifier(PropositionalClassifier):
@@ -181,10 +185,12 @@ class orClassifier(PropositionalClassifier):
     def __init__(self, features, comparisors=None, binary_var=None,
                  positive_group="nFocal", negative_group="nOther",
                  user="", frl_key=_default_frl_key,
-                 group_criterion=False, len_BG=8):
+                 group_criterion=False, len_BG=8,
+                 eligibility_classifier=None, eligibility_params=[]):
         
         operators = ["or"]*(len(features) - 1)
         PropositionalClassifier.__init__(self, features, operators, comparisors, binary_var,
                                          positive_group, negative_group,
                                          user=user, frl_key=frl_key,
-                                         group_criterion=group_criterion, len_BG=len_BG)
+                                         group_criterion=group_criterion, len_BG=len_BG,
+                                         eligibility_classifier=eligibility_classifier, eligibility_params=eligibility_params)
