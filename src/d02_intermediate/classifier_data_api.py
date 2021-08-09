@@ -17,9 +17,15 @@ block_data_api = BlockDataApi()
 periods_list = ["1415", "1516", "1617", "1718", "1819", "1920"]
 student_data_api = StudentDataApi()
 
+#Those are the demographic columns we want:
+block_columns = ['BlockGroup','CTIP_2013 assignment','SF Analysis Neighborhood','SFHA_ex_Sr']
+block_columns_rename = {'CTIP_2013 assignment': 'CTIP13',
+                        'SF Analysis Neighborhood':'Neighborhood',
+                        'SFHA_ex_Sr':'Housing'}
 
 class ClassifierDataApi:
     __block_data = None
+    __redline_data = None
     __map_data = None
     
     def __init__(self):
@@ -32,7 +38,7 @@ class ClassifierDataApi:
         """
         self.__block_data = None
     
-    def get_block_data(self, frl_key=_default_frl_key, pct_frl=False):
+    def get_block_data(self, redline=True, frl_key=_default_frl_key, pct_frl=False):
         """
         Query block data from all three sources.
         :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
@@ -62,6 +68,11 @@ class ClassifierDataApi:
                            ignore_index=False)
             
             self.__block_data = df
+            
+            #Add the redline status:
+            if redline:
+                block_gdf = self.get_map_df_data(cols="BlockGroup")
+                self.__block_data["Redline"] = self.get_redline_status(block_gdf)
         
         return self.__block_data.copy()
     
@@ -81,6 +92,20 @@ class ClassifierDataApi:
             self.__map_data = sfusd_map
             
         return self.__map_data
+    
+    def get_redline_map_data(self):
+        """
+        Query HOLC grades map data used in the redline criterion
+        """
+        if self.__redline_data is None:
+            geodata_path = '/share/data/school_choice_equity/data/'
+            file_name = 'CASanFrancisco1937'
+            data_type = '.geojson'
+
+            redline_map = gpd.read_file(geodata_path + file_name + data_type)
+            self.__redline_data = redline_map
+            
+        return self.__redline_data
     
     def get_map_df_data(self, cols):
         """
@@ -133,11 +158,16 @@ class ClassifierDataApi:
         Query demographic data
         :return:
         """
-        demo_df = block_data_api.get_data().set_index('Block')[['BlockGroup',
-                                                                'CTIP_2013 assignment',
-                                                                'SF Analysis Neighborhood']].dropna(subset=['BlockGroup'])
-        demo_df.rename(columns={'CTIP_2013 assignment': 'CTIP13',
-                                'SF Analysis Neighborhood':'Neighborhood'}, inplace=True)
+        
+        #Collect the meaningful demographic columns:
+        demo_df = block_data_api.get_data().set_index('Block')[block_columns].dropna(subset=['BlockGroup'])
+        #Clean the SFHA column:
+        demo_df = demo_df.replace({'SFHA_ex_Sr': {'yes': True, 'no': False}})
+        
+        #Rename the columns for easier acces:
+        demo_df.rename(columns=block_columns_rename, inplace=True)
+        
+        #Set index as geoid
         demo_df.index.name = geoid_name
         
         return demo_df
@@ -156,6 +186,22 @@ class ClassifierDataApi:
         stud_df = df_students.groupby(geoid_name)[_diversity_index_features].agg(get_group_value)
         
         return stud_df
+    
+    def get_redline_status(self, map_data):
+        """
+        Appends to the block dataframe the redline status i.e. whether the block was in a grade D HOLC area
+        :param block_df: block GeoDataFrame indexed by geoids with geometries of each block
+        :return: pandas (Boolean) Series of whether block intersects redline geometries
+        """
+        
+        if self.__redline_data is None:
+            redline_df = self.get_redline_map_data()
+            
+        redlining_by_grade = self.__redline_data.dissolve(by='holc_grade').to_crs(map_data.crs)
+        
+        redline_series = map_data.buffer(0).intersects(redlining_by_grade['geometry']['D'].buffer(0), align=False)
+        
+        return redline_series
     
     @staticmethod
     def plot_map_column(map_df_data, col, cmap="viridis", ax=None, save=False,

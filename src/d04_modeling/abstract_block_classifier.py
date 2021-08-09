@@ -19,7 +19,8 @@ class AbstractBlockClassifier:
     def __init__(self, columns=None,
                  positive_group='nFocal', negative_group='nOther',
                  user=None, frl_key=_default_frl_key,
-                 group_criterion=False, len_BG=8):
+                 group_criterion=False, len_BG=8,
+                 eligibility_classifier=None, eligibility_params=[]):
         """
         :param columns: columns: list of columns we want to use for the classifier
         :param positive_group: column name of the positive counts
@@ -28,6 +29,8 @@ class AbstractBlockClassifier:
         :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
         :param group_criterion: aggregate/group block data by neighborhood ('nbhd' or 'block_group')
         :param len_BG: length of block group code
+        :param eligibility_classifier: AbstractBlockClassifier object that is used for the eligibility classification
+        :param eligibility_params: parameters (if any) that must be passed to the eligibility_classifier
         """
 
         self.positive_group = positive_group
@@ -70,9 +73,17 @@ class AbstractBlockClassifier:
         nonan_data = data.dropna()
         self.data = nonan_data.copy()
         
+        #Set positive and negative groups:
         self.positive_group = positive_group
         self.negative_group = negative_group
         self.set_negative_group(positive_group, negative_group)
+        
+        #Now we are going to filter the blocks so that only those satisfying the eligibility criterion remain:
+        if eligibility_classifier is not None:
+            self.eligible_blocks = eligibility_classifier.get_solution_set(eligibility_params)
+        #If there are no eligibility criteria, all blocks are eligible:
+        else:
+            self.eligible_blocks = self.data.index
         
         # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
         self.prediction_dict = dict()
@@ -323,6 +334,15 @@ class AbstractBlockClassifier:
             self.confusion_dict[params_key] = confusion_matrix
             
         return confusion_matrix
+    
+    def pr(self, params):
+        """
+        Query the total positive rate
+        :param params: solution parameters (particular instance of the classifier)
+        :return:
+        """
+        confusion_matrix_arr = self.get_confusion_matrix(params).values
+        return (confusion_matrix_arr[0,0] + confusion_matrix_arr[1,0])/np.sum(confusion_matrix_arr)
     
     def fpr(self, params):
         """

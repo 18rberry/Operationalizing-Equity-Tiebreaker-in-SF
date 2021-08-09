@@ -1,6 +1,6 @@
 import pandas as pd
 import sys
-import numpy as np 
+import numpy as np
 sys.path.append('../..')
 
 from src.d01_data.abstract_data_api import AbstractDataApi
