@@ -36,7 +36,7 @@ class Report:
         self.__frl_key = frl_key
         self.__model_dict = self.initialize_models_dict(frl_key, positive_group, propositional_params,
                                                         propositional_structure)
-    
+
     def heat_map1(self, column, frl_key=None, pct_frl=True, title=""):
         """
         Generate heat map of SF for the corresponding column
@@ -50,10 +50,9 @@ class Report:
             self.__classifier_data_api.get_block_data(pct_frl=pct_frl)
         else:
             self.__classifier_data_api.get_block_data(frl_key=frl_key, pct_frl=pct_frl)
-        
+
         self.__classifier_data_api.get_map_data()
         map_df_data = self.__classifier_data_api.get_map_df_data(cols=[column])
-        
         display(HTML("<h3>%s</h3>" % title))
         self.__classifier_data_api.plot_map_column(map_df_data, column, cmap="YlOrRd",
                                                    save=True, legend=False, title="",
@@ -105,16 +104,16 @@ class Report:
                                        'params': propositional_params,
                                        'fname': 'pc'}
         print("Propositional Statement:\n%s" % model_dict['Propositional']['model'].statement)
-        
+
         return model_dict
-    
+
     def classifier_evalutaion_roc(self):
         """
         Plot ROC curve for all the models
         :return:
         """
         model_dict = self.__model_dict.copy()
-        
+
         results_dict = OrderedDict()
         for model_name, model in model_dict.items():
             params = model['params']
@@ -138,14 +137,14 @@ class Report:
         plt.tight_layout()
         plt.savefig('outputs/roc_results_%s.png' % self.__frl_key)
         plt.show()
-        
+
     def classifier_evalutaion_precision_recall(self):
         """
         Plot precision/recall curve for all the models
         :return:
         """
         model_dict = self.__model_dict.copy()
-        
+
         results_dict = OrderedDict()
         for model_name, model in model_dict.items():
             params = model['params']
@@ -169,7 +168,7 @@ class Report:
         plt.tight_layout()
         plt.savefig('outputs/precision_recall_results_%s.png' % self.__frl_key)
         plt.show()
-        
+
     def classification_map(self, fpr):
         """
         Plot SF map with the solution/assignment for each model. Propositional classifier is not implemented.
@@ -177,7 +176,7 @@ class Report:
         :return:
         """
         model_dict = self.__model_dict.copy()
-        
+
         for model_name, model in model_dict.items():
             display(HTML("<h1>%s</h1>" % model_name))
             params = model['params']

@@ -19,7 +19,8 @@ class AbstractBlockClassifier:
     def __init__(self, columns=None,
                  positive_group='nFocal', negative_group='nOther',
                  user=None, frl_key=_default_frl_key,
-                 group_criterion=False, len_BG=8):
+                 group_criterion=False, len_BG=8,
+                 eligibility_classifier=None, eligibility_params=[]):
         """
         :param columns: columns: list of columns we want to use for the classifier
         :param positive_group: column name of the positive counts
@@ -28,6 +29,8 @@ class AbstractBlockClassifier:
         :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
         :param group_criterion: aggregate/group block data by neighborhood ('nbhd' or 'block_group')
         :param len_BG: length of block group code
+        :param eligibility_classifier: AbstractBlockClassifier object that is used for the eligibility classification
+        :param eligibility_params: parameters (if any) that must be passed to the eligibility_classifier
         """
 
         self.positive_group = positive_group
@@ -41,13 +44,15 @@ class AbstractBlockClassifier:
                 columns.append(positive_group)
             if negative_group not in columns:
                 columns.append(negative_group)
-        
+
         # Getting the raw data from classifier api:
         raw_data = self.__classifier_data_api.get_block_data(frl_key=frl_key)
+
         self.raw_data = raw_data
         
         # Adding the negative group column:
         raw_data[self.negative_group] = raw_data['n'] - raw_data[self.positive_group]
+
         
         # Extending the data with percents and block group columns:
         extended_data = add_percent_columns(raw_data)
@@ -64,13 +69,21 @@ class AbstractBlockClassifier:
             data = extended_data[['n', 'BlockGroup', *columns]]
         else:
             data = extended_data[['n', *columns]]
-        
+
         nonan_data = data.dropna()
         self.data = nonan_data.copy()
         
+        #Set positive and negative groups:
         self.positive_group = positive_group
         self.negative_group = negative_group
         self.set_negative_group(positive_group, negative_group)
+        
+        #Now we are going to filter the blocks so that only those satisfying the eligibility criterion remain:
+        if eligibility_classifier is not None:
+            self.eligible_blocks = eligibility_classifier.get_solution_set(eligibility_params)
+        #If there are no eligibility criteria, all blocks are eligible:
+        else:
+            self.eligible_blocks = self.data.index
         
         # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
         self.prediction_dict = dict()
@@ -81,6 +94,7 @@ class AbstractBlockClassifier:
     def get_frl_key(self):
         return self.__frl_key
         
+        
     def set_negative_group(self, positive_group, negative_group):
         """
         Update the negative group column
@@ -90,7 +104,7 @@ class AbstractBlockClassifier:
         """
         # can I use this to plot ROC and precision/recall curves for different definitions of focal groups?
         self.data[negative_group] = self.data['n'] - self.data[positive_group]
-        
+
     def refresh(self):
         """
         Reset the block data
@@ -137,7 +151,7 @@ class AbstractBlockClassifier:
             precision_arr.append(precision)
 
         return pd.DataFrame(data=np.array([recall_arr, precision_arr]).T, columns=["recall", "precision"])
-        
+
     def plot_roc(self, param_arr, ax=None):
         """
         Plot the ROC curve of the classifier.
@@ -252,16 +266,16 @@ class AbstractBlockClassifier:
         
         map_df_data = self.map_data.copy()
         solution_set = self.get_solution_set(params)
-        
+
         # Whether we will apply the label to a column or to the index depends on our classification (by group or by id)
         if map_df_data.index.name == idx_col:
             index = map_df_data.index.to_series()
             map_df_data[col] = index.apply(lambda x: get_label(x, solution_set, block_idx=self.data.index))
         else:
             map_df_data[col] = map_df_data[idx_col].apply(lambda x: get_label(x, solution_set))
-            
+
         return map_df_data
-    
+
     def plot_map(self, params, ax=None, save=False, title="", col='tiebreaker', idx_col='geoid'):
         """
 
@@ -278,11 +292,21 @@ class AbstractBlockClassifier:
         
         # if ax is None:
         #    fig, ax = plt.subplots(figsize=(4.8, 4.8))
-        
+
         ax = self.__classifier_data_api.plot_map_column(map_df_data=map_df_data, col=col, ax=ax,
                                                         legend=False, title=title, save=save)
         return ax
+    
+    def plot_map_new(self, map_df_data, params, ax=None):
+        solution_set = self.get_solution_set(params)
+        #map_df_data["tiebreaker"] = map_df_data['group'].apply(lambda x: get_label(x, solution_set))
 
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(25,25))
+
+        ax = self.__classifier_data_api.plot_map_column(map_df_data, col="New Gent", cmap="YlOrRd", ax=ax)
+        return ax
+        
     def get_confusion_matrix(self, params):
         """
         Query the confusion matrix for the given parameters
@@ -317,6 +341,15 @@ class AbstractBlockClassifier:
             
         return confusion_matrix
     
+    def pr(self, params):
+        """
+        Query the total positive rate
+        :param params: solution parameters (particular instance of the classifier)
+        :return:
+        """
+        confusion_matrix_arr = self.get_confusion_matrix(params).values
+        return (confusion_matrix_arr[0,0] + confusion_matrix_arr[1,0])/np.sum(confusion_matrix_arr)
+    
     def fpr(self, params):
         """
         Query the FPR
@@ -350,7 +383,7 @@ class AbstractBlockClassifier:
         :return:
         """
         return 1 - self.fpr(params)
-    
+
     def recall(self, params):
         """
         Query the recall
@@ -359,7 +392,7 @@ class AbstractBlockClassifier:
         """
         confusion_matrix_arr = self.get_confusion_matrix(params).values
         return confusion_matrix_arr[0,0]/(confusion_matrix_arr[0,0] + confusion_matrix_arr[0,1])
-    
+
     def precision(self, params):
         """
         Query the precision
@@ -387,5 +420,5 @@ class AbstractBlockClassifier:
             grouped_data_arr = grouped_data.values
 
             inter_tpr = grouped_data_arr[1]/(grouped_data_arr[0] + grouped_data_arr[1])
-
         return inter_tpr[0]
+

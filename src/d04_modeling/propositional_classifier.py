@@ -11,7 +11,9 @@ frl_columns = ["nAALPI", "nFRL", "nBoth", "nFocal", "pctAALPI", "pctFRL", "pctBo
 # Function to create a pre-formatted statment for logical evaluation given features, operators, and comparisors:
 
 def get_statement(features, operators, comparisors):
+    
     i = 0
+    i_format = 0
     statement = ""
     for feature in features:
         # If there is a tuple we open a parantheses:
@@ -20,7 +22,13 @@ def get_statement(features, operators, comparisors):
             i_max = i + len(feature) - 1
             # We proceed for each entry in the tuple:
             for sub_feature in feature:
-                comp = comparisors[i] + " {" + str(i) + ":.2f} "  # comparisor with the formating placeholder
+                #Find the comparisor:
+                if comparisors[i] is None:
+                    comp = " == True "
+                else:
+                    comp = comparisors[i] + " {" + str(i_format) + ":.2f} "  # comparisor with the formating placeholder
+                    i_format += 1
+                #Find the operator:
                 if i < i_max:
                     operator = operators[i] + " "
                 else:
@@ -30,15 +38,21 @@ def get_statement(features, operators, comparisors):
                         operator = ")"
                 statement += sub_feature + comp + operator
                 i += 1
+                
         # No tuple means we can just do the work above:
         else:
-            comp = comparisors[i] + " {" + str(i) + ":.2f} "  # comparisor with the formating placeholder
+            if comparisors[i] is None:
+                comp = " == True "
+            else:
+                comp = comparisors[i] + " {" + str(i_format) + ":.2f} "  # comparisor with the formating placeholder
+                i_format += 1
             if i < len(operators):
                 operator = operators[i] + " "
             else:
                 operator = ""
             statement += feature + comp + operator
             i += 1
+        
     return statement.strip(" ")
 
 def unravel_list(features_list, l=[]):
@@ -53,11 +67,12 @@ def unravel_list(features_list, l=[]):
 
 
 class PropositionalClassifier(AbstractBlockClassifier):
-    
-    def __init__(self, features, operators, comparisors=None,
+
+    def __init__(self, features, operators, comparisors=None, binary_var=None,
                  positive_group="nFocal", negative_group="nOther",
                  user="", frl_key=_default_frl_key,
-                 group_criterion=False, len_BG=8):
+                 group_criterion=False, len_BG=8,
+                 eligibility_classifier=None, eligibility_params=[]):
 
         #First we need to obtain a list of columns from our features:
         self.features = unravel_list(features, [])
@@ -70,11 +85,12 @@ class PropositionalClassifier(AbstractBlockClassifier):
         AbstractBlockClassifier.__init__(self, self.features,
                                          positive_group=self.positive_group, negative_group=self.negative_group,
                                          user=user, frl_key=frl_key,
-                                         group_criterion=group_criterion, len_BG=len_BG)
+                                         group_criterion=group_criterion, len_BG=len_BG,
+                                         eligibility_classifier=eligibility_classifier, eligibility_params=eligibility_params)
         
-        self.add_proposition(features, operators, comparisors)
-
-    def add_proposition(self, features, operators, comparisors=None):
+        self.add_proposition(features, operators, comparisors, binary_var)
+        
+    def add_proposition(self, features, operators, comparisors=None, binary_var_idx=None):
         '''
         No output. Adds the pre-formatted statement to class attributes. Called upon initialization.
         '''
@@ -91,6 +107,12 @@ class PropositionalClassifier(AbstractBlockClassifier):
                     comparisor = " " + comparisor
                 if comparisor[-1] != " ":
                     comparisor = comparisor + " "
+        # In case there is a binary variable, that comparisor can't exist:
+        if binary_var_idx is not None:
+            for i in range(len(comparisors)):
+                if i in binary_var_idx:
+                    comparisors[i] = None
+                    
         self.comparisors = comparisors
 
         # Pre-process the operators. Make them all lower case:
@@ -133,6 +155,7 @@ class PropositionalClassifier(AbstractBlockClassifier):
             y_hat_series = self.data.eval(s)
             #Return the index object and add it to the dictionary:
             y_hat_idx = self.data.index[y_hat_series]
+            y_hat_idx = y_hat_idx.intersection(self.eligible_blocks)
             self.prediction_dict[params_key] = y_hat_idx
             
         return y_hat_idx
@@ -143,27 +166,31 @@ class PropositionalClassifier(AbstractBlockClassifier):
 
 class andClassifier(PropositionalClassifier):
     
-    def __init__(self, features, comparisors=None,
+    def __init__(self, features, comparisors=None, binary_var=None,
                  positive_group="nFocal", negative_group="nOther",
                  user="", frl_key=_default_frl_key,
-                 group_criterion=False, len_BG=8):
+                 group_criterion=False, len_BG=8,
+                 eligibility_classifier=None, eligibility_params=[]):
         
         operators = ["and"]*(len(features) - 1)
-        PropositionalClassifier.__init__(self, features, operators, comparisors,
+        PropositionalClassifier.__init__(self, features, operators, comparisors, binary_var,
                                          positive_group, negative_group,
                                          user=user, frl_key=frl_key,
-                                         group_criterion=group_criterion, len_BG=len_BG)
+                                         group_criterion=group_criterion, len_BG=len_BG,
+                                         eligibility_classifier=eligibility_classifier, eligibility_params=eligibility_params)
 
 
 class orClassifier(PropositionalClassifier):
     
-    def __init__(self, features, comparisors=None,
+    def __init__(self, features, comparisors=None, binary_var=None,
                  positive_group="nFocal", negative_group="nOther",
-                 user="", frl_key=_default_frl_key, 
-                 group_criterion=False, len_BG=8):
+                 user="", frl_key=_default_frl_key,
+                 group_criterion=False, len_BG=8,
+                 eligibility_classifier=None, eligibility_params=[]):
         
         operators = ["or"]*(len(features) - 1)
-        PropositionalClassifier.__init__(self, features, operators, comparisors,
+        PropositionalClassifier.__init__(self, features, operators, comparisors, binary_var,
                                          positive_group, negative_group,
                                          user=user, frl_key=frl_key,
-                                         group_criterion=group_criterion, len_BG=len_BG)
+                                         group_criterion=group_criterion, len_BG=len_BG,
+                                         eligibility_classifier=eligibility_classifier, eligibility_params=eligibility_params)

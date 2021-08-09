@@ -24,7 +24,7 @@ class Gentrification:
         self.gentrification_cols = ["OD", "ARG", "EOG", "AdvG", "SMMI", "ARE", "BE", "SAE"]
         
     def gentrification_data(self, df, block_df_dict):
-        block_database = block_df_dict["block database"].dropna(axis=0, how='all').dropna(axis=1, how='all')
+        block_database = block_df_dict.dropna(axis=0, how='all').dropna(axis=1, how='all')
         new_blockdf = block_database[["Tract", "CTIP_2013 assignment"]]
         ctip_data = new_blockdf.merge(df, left_on = "Tract", right_on = "GEOID", how = "left")
         ctip_data = ctip_data[["Tract", "CTIP_2013 assignment", "OD", "ARG", "EOG", "AdvG", "SMMI", "ARE", "BE", "SAE"]]
@@ -33,9 +33,9 @@ class Gentrification:
         ctip_data_removed = ctip_data_new.drop("Tract", axis=1)
         return sns.heatmap(ctip_data_removed)
      
-    def frl_vs_ctip(self, updated_FRL, block_df_dict): 
-        block_database = block_df_dict["block database"].dropna(axis=0, how='all').dropna(axis=1, how='all')
-        grouped_Geoid = updated_FRL["Grouped GeoID External"]
+    def frl_vs_ctip(self, frl_df_raw, block_df_dict): 
+        block_database = block_df_dict.dropna(axis=0, how='all').dropna(axis=1, how='all')
+        grouped_Geoid = frl_df_raw
         grouped_Geoid_filtered = grouped_Geoid[grouped_Geoid["Geoid Group"].astype('str').str.len() > 3]
         new_merge = grouped_Geoid_filtered.merge(block_database, left_on = "Geoid Group", right_on = "Block")
         new_merge_grouped = new_merge.groupby("CTIP_2013 assignment").mean()
@@ -49,8 +49,8 @@ class Gentrification:
         plt.title("4YR Average of Student Demographic Counts", fontsize = 15)
         return ax 
     
-    def gentrification_vs_demo(self, updated_FRL, df):
-        grouped_Geoid = updated_FRL["Grouped GeoID External"]
+    def gentrification_vs_demo(self, frl_df_raw, df):
+        grouped_Geoid = frl_df_raw
         grouped_Geoid_filtered = grouped_Geoid[grouped_Geoid["Geoid Group"].astype('str').str.len() > 3]
         grouped_Geoid_filtered["New Geoid"] = grouped_Geoid_filtered["Geoid Group"].astype(str).str[:10].astype(int)
         grouped_Geoid_filtered = grouped_Geoid_filtered.merge(df, left_on = "New Geoid", right_on = "GEOID")
@@ -74,15 +74,15 @@ class Gentrification:
         grouped_Geoid_gent = grouped_Geoid_gent[["4YR AVG Student Count", "4YR AVG FRL Count", "4YR AVG Eth Flag Count", "4YR AVG Combo Flag Count", "Gentrification"]]
         return grouped_Geoid_gent
     
-    def grouped_barchart(self, updated_FRL, df):
-        grouped_Geoid_gent = self.gentrification_vs_demo(updated_FRL, df)
+    def grouped_barchart(self, frl_df_raw, df):
+        grouped_Geoid_gent = self.gentrification_vs_demo(frl_df_raw, df)
         gentrification_agg = grouped_Geoid_gent.groupby("Gentrification").mean()
         gentrification_agg_new = gentrification_agg.drop("4YR AVG Student Count", axis = 1)
         return [gentrification_agg_new.loc[self.gentrification_cols].plot.bar(), gentrification_agg]
         
-    def stacked_barchart(self, updated_FRL, df):
+    def stacked_barchart(self, frl_df_raw, df):
         labels = ["Student", "FRL", "AALPI", "Combo"]
-        gentrification_agg = self.grouped_barchart(updated_FRL, df)[1]
+        gentrification_agg = self.grouped_barchart(frl_df_raw, df)[1]
         plt.bar(self.gentrification_cols, gentrification_agg["4YR AVG Student Count"])
         plt.bar(self.gentrification_cols, gentrification_agg["4YR AVG FRL Count"])
         plt.bar(self.gentrification_cols, gentrification_agg["4YR AVG Eth Flag Count"])

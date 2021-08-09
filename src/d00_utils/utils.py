@@ -67,8 +67,8 @@ def add_group_columns(df: pd.DataFrame, group_type, len_BG=8, positive_group="nF
     else:
         print("Grouping method must be nbhd or block_group. No grouping defined.")
         return df
-    
-    # Create an aggregated dataframe with counts per block group:
+
+    #Create an aggregated dataframe with counts per block group:
     agg_df = df[[bg_col, "n", "nFocal", "nFRL", "nAALPI", "nBoth"]].groupby(bg_col).sum()
     agg_df = agg_df.rename(columns={"n": "BG_n",
                                     "nFocal": "BG_nFocal",
@@ -78,15 +78,16 @@ def add_group_columns(df: pd.DataFrame, group_type, len_BG=8, positive_group="nF
     # Merge the aggregated df on the main df via the bg_column:
     df["geoid"] = df.index
     extended_df = df.merge(agg_df, on=bg_col).set_index("geoid")
-    
+
     extended_df["BG_nOther"] = extended_df['BG_n'] - extended_df["BG_" + positive_group]
-    
+
     extended_df['BG_pctFRL'] = extended_df['BG_nFRL'] /  extended_df['BG_n']
     extended_df['BG_pctAALPI'] = extended_df['BG_nAALPI'] / extended_df['BG_n']
     extended_df['BG_pctFocal'] = extended_df['BG_nFocal'] /  extended_df['BG_n']
-    
+
     extended_df['BG_pctBoth'] = extended_df['BG_nBoth'] / extended_df['BG_n']
     extended_df['BG_pctBothUnion'] = extended_df['BG_nBoth'] / extended_df['BG_nFocal'] #union
+
     
     return extended_df
 
@@ -104,4 +105,3 @@ def add_bayesian_bernoulli(frl_df):
         frl_df[prob_key] = (frl_df[n_key] + 1) / (frl_df['n'] + 2)
         
     return frl_df
-    
