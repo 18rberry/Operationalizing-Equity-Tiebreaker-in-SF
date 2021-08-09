@@ -25,14 +25,16 @@ class Report:
     __classifier_data_api = ClassifierDataApi()
 
     def __init__(self, frl_key, propositional_params=None,
-                 propositional_structure=None):
+                 propositional_structure=None,
+                 positive_group='nFocal'):
         """
         :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
         :param propositional_params: list of parameters for the propositional classifier
         :param propositional_structure: list with the structure of the propositional classifier
+        :param positive_group: column name of the positive counts
         """
         self.__frl_key = frl_key
-        self.__model_dict = self.initialize_models_dict(frl_key, propositional_params,
+        self.__model_dict = self.initialize_models_dict(frl_key, positive_group, propositional_params,
                                                         propositional_structure)
     
     def heat_map1(self, column, frl_key=None, pct_frl=True, title=""):
@@ -58,39 +60,48 @@ class Report:
                                                    show=True)
     
     @staticmethod    
-    def initialize_models_dict(frl_key, propositional_params=None, propositional_structure=None):
+    def initialize_models_dict(frl_key, positive_group, propositional_params=None, propositional_structure=None):
         """
         Initialize models for report
         :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
+        :param positive_group: column name of the positive counts
         :param propositional_params: list of parameters for the propositional classifier
         :param propositional_structure: list with the structure of the propositional classifier
         :return:
         """
         if propositional_structure is None:
-            propositional_structure = {'variables': [("pctAALPI", "pctFRL"), "pctBoth"],
-                                       'logic': ["and", "or"]}
+            propositional_structure = {'variables': ["pctFocal", "BG_pctFocal"],
+                                       'logic': ["and"]}
         if propositional_params is None:
-            propositional_params = [[0.5, 0.6, x] for x in np.linspace(0, 1, num=100)]
+            propositional_params = [[x, 0.6] for x in np.linspace(0, 1, num=100)]
                     
         AbstractBlockClassifier().refresh()
         model_dict = OrderedDict()
-        model_dict['Naive'] = {'model': NaiveClassifier(positive_group='nFocal', proportion=False, frl_key=frl_key),
+        model_dict['Naive'] = {'model': NaiveClassifier(positive_group=positive_group, proportion=False, frl_key=frl_key),
                                'params': None,
                                'fname': 'naive'}
-        model_dict['Naive (Prop.)'] = {'model': NaiveClassifier(positive_group='nFocal', proportion=True,
+        model_dict['Naive (Prop.)'] = {'model': NaiveClassifier(positive_group=positive_group, proportion=True,
                                                                 frl_key=frl_key),
                                       'params': None,
                                       'fname': 'naivep'}
-        model_dict['CTIP1'] = {'model': CtipClassifier(positive_group='nFocal', frl_key=frl_key),
+        model_dict['CTIP1'] = {'model': CtipClassifier(positive_group=positive_group, frl_key=frl_key),
                                'params': None,
                                'fname': 'ctip'}
-        model_dict['Knapsack'] = {'model': KnapsackClassifier(positive_group='nFocal', load=True,
-                                                              frl_key=frl_key, run_name=frl_key+".pkl"),
-                                  'params': None,
-                                  'fname': 'kc'}
+        try:
+            model_dict['Knapsack'] = {'model': KnapsackClassifier(positive_group=positive_group, load=True,
+                                                                  frl_key=frl_key, run_name="%s_%s.pkl" % (frl_key, positive_group)),
+                                      'params': None,
+                                      'fname': 'kc'}
+        except FileNotFoundError:
+            model_dict['Knapsack'] = {'model': KnapsackClassifier(positive_group=positive_group, load=False,
+                                                                  frl_key=frl_key, run_name="%s_%s.pkl" % (frl_key, positive_group)),
+                                      'params': None,
+                                      'fname': 'kc'}
         model_dict['Propositional'] = {'model': PropositionalClassifier(propositional_structure['variables'],
                                                                         propositional_structure['logic'],
-                                                                        frl_key=frl_key),
+                                                                        frl_key=frl_key,
+                                                                        positive_group=positive_group,
+                                                                        group_criterion="nbhd"),
                                        'params': propositional_params,
                                        'fname': 'pc'}
         print("Propositional Statement:\n%s" % model_dict['Propositional']['model'].statement)

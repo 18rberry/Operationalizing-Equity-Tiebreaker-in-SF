@@ -197,14 +197,12 @@ class SimulationEvaluation:
         assignment_df['iteration'] = iteration
         self.augment_assigment(assignment_df, equity_tiebreaker)
         evaluation_columns = [self.__diversity_category_col, 'rank', 'designation', 'In-Zone Rank',
-                              self.__cutoff_tiebreaker, equity_tiebreaker, self.__focal_label, 'iteration']
+                              self.__cutoff_tiebreaker, self.__tiebreaker_status, self.__focal_label, 'iteration']
 
-        group_columns = [self.__diversity_category_col, self.__focal_label]
+        group_columns = ['iteration', self.__diversity_category_col, self.__focal_label]
 
         rank_funs = ['count', 'mean', 'min', q1, q2, q3, 'max']
-
-        return assignment_df[evaluation_columns].groupby(group_columns).agg({'rank': rank_funs,
-                                                                             equity_tiebreaker: 'mean'})
+        return assignment_df[evaluation_columns].groupby(group_columns).agg({'rank': rank_funs})
 
     def query_summary_df(self):
         """
@@ -218,10 +216,10 @@ class SimulationEvaluation:
                 filename = self.__filename_template.format(equity_tiebreaker, iteration)
                 assignment_df = pd.read_csv(self.__assignment_dir+filename).set_index('studentno')
                 assignment_df['iteration'] = iteration
-                summary_df += [self.get_summary_iteration(assignment_df, equity_tiebreaker)]
+                summary_df += [self.get_summary_iteration(assignment_df, equity_tiebreaker, iteration)]
 
             # group_columns = [self.__diversity_category_col, self.__focal_label, 'tiebreaker']
-            summary_df = pd.concat(summary_df, axis=0)
+            summary_df = pd.concat(summary_df, axis=0).groupby([self.__diversity_category_col, self.__focal_label]).mean()
 
             summary_dict[equity_tiebreaker] = summary_df
 
@@ -276,7 +274,7 @@ class SimulationEvaluation:
         """
         if "none" not in self.__equity_tiebreaker_list:
             raise Exception("`none` method is not in the loaded tiebreaker data")
-        df = df.groupby(['method', 'studentno']).agg({'rank': 'mean', self.__tiebreaker_status: get_group_value})
+        df = df.groupby(['method', 'studentno']).agg({'rank': 'mean', self.__tiebreaker_status: get_group_value, self.__diversity_category_col: get_group_value})
         df_none = df.loc['none']
         df['change'] = np.nan
         for equity_tiebreaker in self.__equity_tiebreaker_list:
@@ -318,18 +316,40 @@ class SimulationEvaluation:
         Plot query from method `improvement_over_none`.
         :return:
         """
-        df_change = self.get_improvement_over_none(self.__rank_results_df)
-        fig, ax = plt.subplots(figsize=(6.8,5.2))
-        sns.boxplot(ax=ax, x="method", y="change",
+        df_change = self.get_improvement_over_none(self.__rank_results_df.copy())
+        mask = df_change['method'] != "none"
+        df_change = df_change.loc[mask]
+        fig1, ax1 = plt.subplots(figsize=(6.8,5.2))
+        sns.boxplot(ax=ax1, x="method", y="change",
                     hue=self.__tiebreaker_status,
                     data=df_change,
                     showfliers = False)
         sns.despine(offset=10, trim=False)
         plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
-        plt.savefig('outputs/boxplot_simulations_change.png')
+        plt.savefig('outputs/boxplot_improvement_over_none.png')
         plt.show()
-
-        display(df_change.groupby(['method', self.__tiebreaker_status])['change'].agg(['mean', 'median', 'count', 'std']))
+        
+        fig2, ax2 = plt.subplots(figsize=(6.8,5.2))
+        sns.barplot(ax=ax2, data=df_change, x="method", hue=self.__tiebreaker_status, y="change")
+        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
+        plt.savefig('outputs/barplot_simulations_change.png')
+        plt.show()
+        
+    def plot_improvement_over_none_method(self, method):
+        """
+        Plot query from method `improvement_over_none` by method.
+        :return:
+        """
+        df_change = self.get_improvement_over_none(self.__rank_results_df.copy())
+        mask = df_change['method'] == method
+        df_change = df_change.loc[mask]
+        
+        fig, ax = plt.subplots(figsize=(6.8,5.2))
+        sns.barplot(ax=ax, data=df_change, x=self.__diversity_category_col, hue=self.__tiebreaker_status, y="change")
+        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
+        plt.savefig('outputs/plot_improvement_over_none_method_%s.png' % method)
+        plt.show()
+        
 
     def plot_improvement_tp(self):
         """
@@ -337,17 +357,21 @@ class SimulationEvaluation:
         :return:
         """
         df_tp = self.get_improvement_tp(self.__rank_results_df)
-        fig, ax = plt.subplots(figsize=(6.8,5.2))
-        sns.boxplot(ax=ax, x="method", y="rank",
+        fig1, ax1 = plt.subplots(figsize=(6.8,5.2))
+        sns.boxplot(ax=ax1, x="method", y="rank",
                     hue="label",
                     data=df_tp,
                     showfliers = False)
         sns.despine(offset=10, trim=False)
         plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
-        plt.savefig('outputs/boxplot_simulations_tp.png')
+        plt.savefig('outputs/boxplot_improvement_tp.png')
         plt.show()
-
-        display(df_tp.groupby(['method', 'label'])['rank'].agg(['mean', 'median', 'count', 'std']))
+        
+        fig2, ax2 = plt.subplots(figsize=(6.8,5.2))
+        sns.barplot(ax=ax2, data=df_tp, x="method", hue='label', y="rank")
+        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
+        plt.savefig('outputs/barplot_improvement_tp.png')
+        plt.show()
 
     def rank_results_bar_plot(self, x_axis=None, hue="method"):
         """
@@ -358,10 +382,38 @@ class SimulationEvaluation:
         """
         if x_axis is None:
             x_axis = self.__tiebreaker_status
-
-        ax = sns.histplot(x=x_axis, hue=hue, data=self.__rank_results_df, multiple="dodge", shrink=.8,
+            
+        plot_data = self.__rank_results_df[[x_axis, hue]].copy()
+        
+        if plot_data[x_axis].dtype in [np.int64, np.float64]:
+            plot_data[x_axis] = plot_data[x_axis].fillna(0).apply(lambda x: "%i" % x)
+        
+        ax = sns.histplot(x=x_axis, hue=hue, data=plot_data, multiple="dodge", shrink=.8,
                           stat="probability", common_norm=False)
-        plt.savefig('outputs/tiebreaker_distribution_prob.png')
+        plt.savefig('outputs/rank_results_bar_plot_%s.png' %  x_axis)
+        plt.show()
+        
+    def rank_results_bar_plot_method(self, method, x_axis=None, hue=None):
+        """
+        Generate histogram form rank results data.
+        :param x_axis: x axis column
+        :param hue: group column
+        :return:
+        """
+        if x_axis is None:
+            x_axis = self.__tiebreaker_status
+        if hue is None:
+            hue = self.__diversity_category_col
+        
+        mask = self.__rank_results_df['method'] == method
+        plot_data = self.__rank_results_df.loc[mask, [x_axis, hue]].copy()
+        
+        if plot_data[x_axis].dtype in [np.int64, np.float64]:
+            plot_data[x_axis] = plot_data[x_axis].fillna(0).apply(lambda x: "%i" % x)
+        
+        ax = sns.histplot(x=x_axis, hue=hue, data=plot_data, multiple="dodge", shrink=.8,
+                          stat="probability", common_norm=False)
+        plt.savefig('outputs/rank_results_bar_plot_method_%s.png' %  x_axis)
         plt.show()
 
     def rank_results_bar_plot_by_method(self, x_axis=None, hue=None):
@@ -409,18 +461,27 @@ class SimulationEvaluation:
         display(HTML("<h3>Tiebreaker: %s</h3>" % equity_tiebreaker))
         display(results.summary())
 
-    def topkrank(self, k=3):
+    def topkrank(self, k=3, hue=None):
         """
         Estimate proportion of students that get one of their top k choices. The estimation is done by averaging
         the proportion of top k rank over all iterations.
         :param k: number of options to consider
+        :param hue: column to use for grouping
         :return:
         """
-        top3rank_pct = self.__rank_results_df.groupby(['method',
-                                                       'focal',
+        if hue is None:
+            hue = self.__focal_label
+        topkrank_pct = self.__rank_results_df.groupby(['method',
+                                                       hue,
                                                        'iteration']).agg({'rank': lambda x: topkrank(x, k)})
-        top3rank_pct.groupby(['method', 'focal']).agg(['mean', 'std'])
-        display(top3rank_pct)
+        
+        
+        fig1, ax1 = plt.subplots(figsize=(6.8,5.2))
+        sns.barplot(ax=ax1, data=topkrank_pct.reset_index(), x="method", hue=hue, y="rank")
+        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title=hue)
+        plt.savefig('outputs/top%irank.png'%k)
+        plt.show()
+
 
 
 
