@@ -34,7 +34,7 @@ class AbstractSimpleClassifier(AbstractBlockClassifier, ABC):
 
         return results[['fpr', 'tpr']]
 
-    def get_precision_recall(self, param_arr: list):
+    def get_precision_recall(self, param_arr=None):
         """
         Method description is in the abstract class
         :param param_arr:
