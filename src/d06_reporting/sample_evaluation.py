@@ -21,24 +21,49 @@ from src.d04_modeling.propositional_classifier import PropositionalClassifier, a
 from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier
 
 
-class Report:
+class SampleEvaluation:
     """
     Generate main report results
     """
     __classifier_data_api = ClassifierDataApi()
 
-    def __init__(self, frl_key, propositional_params=None,
-                 propositional_structure=None,
-                 positive_group='nFocal'):
+    def __init__(self, frl_key, propositional_model: PropositionalClassifier, propositional_params):
         """
         :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
         :param propositional_params: list of parameters for the propositional classifier
-        :param propositional_structure: list with the structure of the propositional classifier
-        :param positive_group: column name of the positive counts
+        :param propositional_model: PropositionalClassifier
         """
         self.__frl_key = frl_key
-        self.__model_dict = self.initialize_models_dict(frl_key, positive_group, propositional_params,
-                                                        propositional_structure)
+        self.__model_dict = self.initialize_models_dict(frl_key, propositional_model, propositional_params)
+        
+    @staticmethod    
+    def initialize_models_dict(frl_key, propositional_model, propositional_params):
+        """
+        Initialize models for report
+        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
+        :param propositional_params: list of parameters for the propositional classifier
+        :param propositional_model: PropositionalClassifier
+        :return:
+        """
+                    
+        AbstractBlockClassifier().refresh()
+        positive_group = propositional_model.positive_group
+        model_dict = OrderedDict()
+        model_dict['Benchmark'] = {'model': NaiveClassifier(positive_group=positive_group, proportion=True,
+                                                                frl_key=frl_key),
+                                      'params': None,
+                                      'fname': 'naivep'}
+        model_dict['CTIP1'] = {'model': CtipClassifier(positive_group=positive_group, frl_key=frl_key),
+                               'params': None,
+                               'fname': 'ctip'}
+    
+        model_dict['DSSG ET'] = {'model': propositional_model,
+                                 'params': propositional_params,
+                                 'fname': 'pc'}
+        
+        print("Propositional Statement:\n%s" % model_dict['DSSG ET']['model'].statement)
+        print("Focal group: %s" % positive_group)
+        return model_dict
 
     def heat_map1(self, column, frl_key=None, pct_frl=True, title=""):
         """
@@ -60,43 +85,6 @@ class Report:
         self.__classifier_data_api.plot_map_column(map_df_data, column, cmap="YlOrRd",
                                                    save=True, legend=False, title="",
                                                    show=True)
-    
-    @staticmethod    
-    def initialize_models_dict(frl_key, positive_group, propositional_params=None, propositional_structure=None):
-        """
-        Initialize models for report
-        :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
-        :param positive_group: column name of the positive counts
-        :param propositional_params: list of parameters for the propositional classifier
-        :param propositional_structure: list with the structure of the propositional classifier
-        :return:
-        """
-        if propositional_structure is None:
-            propositional_structure = {'variables': ["pctFocal", "BG_pctFocal"],
-                                       'logic': ["and"]}
-        if propositional_params is None:
-            propositional_params = np.linspace(0, 1, num=100)
-                    
-        AbstractBlockClassifier().refresh()
-        model_dict = OrderedDict()
-        model_dict['Benchmark'] = {'model': NaiveClassifier(positive_group=positive_group, proportion=True,
-                                                                frl_key=frl_key),
-                                      'params': None,
-                                      'fname': 'naivep'}
-        model_dict['CTIP1'] = {'model': CtipClassifier(positive_group=positive_group, frl_key=frl_key),
-                               'params': None,
-                               'fname': 'ctip'}
-            
-        eligibility_classifier = orClassifier(["Housing", "Redline"], binary_var=[0,1])
-        pc3 = andClassifier(["pctBoth"], positive_group=positive_group,
-                            eligibility_classifier=eligibility_classifier, frl_key=frl_key)
-        model_dict['DSSG ET'] = {'model': pc3,
-                                 'params': propositional_params,
-                                 'fname': 'pc'}
-        
-        print("Propositional Statement:\n%s" % model_dict['DSSG ET']['model'].statement)
-
-        return model_dict
 
     def classifier_evalutaion_roc(self, x=None):
         """
@@ -120,7 +108,6 @@ class Report:
         for model_name, results in results_dict.items():
             markers = False
             if len(results) < 20:
-                print("Adding marker for %s" % model_name)
                 markers = True
                 sns.scatterplot(ax=ax, data=results, x='fpr', y='tpr', label=model_name, color=next(palette))
             else:
@@ -176,8 +163,29 @@ class Report:
 
         for model_name, model in model_dict.items():
             display(HTML("<h1>%s</h1>" % model_name))
-            model_params = model['params']
-            if model_params is None:
+            use_fpr = model['params'] is None
+            if use_fpr is None:
                 model['model'].plot_map(params=fpr, save=True, col=model['fname'])
             else:
                 model['model'].plot_map(params=params, save=True, col=model['fname'])
+                
+    def get_ctip1_fpr(self):
+        """
+        Query the false positive rate of the CTIP1 model
+        :return:
+        """
+        model = self.__model_dict['CTIP1']['model']
+        fpr = model.get_results().iloc[0]['fp'] / model.data[model.negative_group].sum()
+        print("CTIP1 FPR: %.4f" % fpr)
+        return fpr
+    
+    def get_dssg_et_params(self, fpr):
+        model = self.__model_dict['DSSG ET']['model']
+        params = self.__model_dict['DSSG ET']['params']
+        roc_df = model.get_roc(params).sort_values('fpr')
+        mask = roc_df['fpr'] <= fpr
+        i = roc_df.index[mask][-1]
+        params_fpr = params[i]
+        print("Parameters DSSG ET @ %.4f:" % fpr)
+        print(params_fpr)
+        return params_fpr
