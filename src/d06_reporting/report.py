@@ -4,17 +4,20 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 from collections.abc import Iterable
+import itertools
 import matplotlib.pyplot as plt
 from IPython.core.display import display, HTML
+import seaborn as sns
 
 import sys
 sys.path.append('../')
+# sns.set_theme(style="ticks", palette="pastel")
 
 from src.d02_intermediate.classifier_data_api import ClassifierDataApi
 from src.d04_modeling.knapsack_classifier import KnapsackClassifier
 from src.d04_modeling.naive_classifier import NaiveClassifier
 from src.d04_modeling.ctip_classifier import CtipClassifier
-from src.d04_modeling.propositional_classifier import PropositionalClassifier
+from src.d04_modeling.propositional_classifier import PropositionalClassifier, andClassifier, orClassifier
 from src.d04_modeling.abstract_block_classifier import AbstractBlockClassifier
 
 
@@ -72,42 +75,30 @@ class Report:
             propositional_structure = {'variables': ["pctFocal", "BG_pctFocal"],
                                        'logic': ["and"]}
         if propositional_params is None:
-            propositional_params = [[x, 0.6] for x in np.linspace(0, 1, num=100)]
+            propositional_params = np.linspace(0, 1, num=100)
                     
         AbstractBlockClassifier().refresh()
         model_dict = OrderedDict()
-        model_dict['Naive'] = {'model': NaiveClassifier(positive_group=positive_group, proportion=False, frl_key=frl_key),
-                               'params': None,
-                               'fname': 'naive'}
-        model_dict['Naive (Prop.)'] = {'model': NaiveClassifier(positive_group=positive_group, proportion=True,
+        model_dict['Benchmark'] = {'model': NaiveClassifier(positive_group=positive_group, proportion=True,
                                                                 frl_key=frl_key),
                                       'params': None,
                                       'fname': 'naivep'}
         model_dict['CTIP1'] = {'model': CtipClassifier(positive_group=positive_group, frl_key=frl_key),
                                'params': None,
                                'fname': 'ctip'}
-        try:
-            model_dict['Knapsack'] = {'model': KnapsackClassifier(positive_group=positive_group, load=True,
-                                                                  frl_key=frl_key, run_name="%s_%s.pkl" % (frl_key, positive_group)),
-                                      'params': None,
-                                      'fname': 'kc'}
-        except FileNotFoundError:
-            model_dict['Knapsack'] = {'model': KnapsackClassifier(positive_group=positive_group, load=False,
-                                                                  frl_key=frl_key, run_name="%s_%s.pkl" % (frl_key, positive_group)),
-                                      'params': None,
-                                      'fname': 'kc'}
-        model_dict['Propositional'] = {'model': PropositionalClassifier(propositional_structure['variables'],
-                                                                        propositional_structure['logic'],
-                                                                        frl_key=frl_key,
-                                                                        positive_group=positive_group,
-                                                                        group_criterion="nbhd"),
-                                       'params': propositional_params,
-                                       'fname': 'pc'}
-        print("Propositional Statement:\n%s" % model_dict['Propositional']['model'].statement)
+            
+        eligibility_classifier = orClassifier(["Housing", "Redline"], binary_var=[0,1])
+        pc3 = andClassifier(["pctBoth"], positive_group=positive_group,
+                            eligibility_classifier=eligibility_classifier, frl_key=frl_key)
+        model_dict['DSSG ET'] = {'model': pc3,
+                                 'params': propositional_params,
+                                 'fname': 'pc'}
+        
+        print("Propositional Statement:\n%s" % model_dict['DSSG ET']['model'].statement)
 
         return model_dict
 
-    def classifier_evalutaion_roc(self):
+    def classifier_evalutaion_roc(self, x=None):
         """
         Plot ROC curve for all the models
         :return:
@@ -124,15 +115,21 @@ class Report:
 
         plt.rcParams['font.size'] = '10'
         fig, ax = plt.subplots(figsize=(4.8,4.8))
-        lw = 4
+        lw = 2
+        palette = itertools.cycle(sns.color_palette())
         for model_name, results in results_dict.items():
-            marker = None
+            markers = False
             if len(results) < 20:
-                marker = '.'
-            ax.plot(results['fpr'], results['tpr'], label=model_name, linewidth=lw,
-                    marker=marker, markersize=12)
+                print("Adding marker for %s" % model_name)
+                markers = True
+                sns.scatterplot(ax=ax, data=results, x='fpr', y='tpr', label=model_name, color=next(palette))
+            else:
+                sns.lineplot(ax=ax, data=results, x='fpr', y='tpr', label=model_name, linewidth=lw,
+                        markers=markers, markersize=12, color=next(palette))
         ax.set_ylabel('Proportion of focal students\n receiving priority (TPR)')
         ax.set_xlabel('Proportion of non-Focal students\n receiving priority (FPR)')
+        if x is not None:
+            ax.axvline(x=x, ymin=0., ymax=1., color='k', linestyle='--')
         ax.legend()
         plt.tight_layout()
         plt.savefig('outputs/roc_results_%s.png' % self.__frl_key)
@@ -169,7 +166,7 @@ class Report:
         plt.savefig('outputs/precision_recall_results_%s.png' % self.__frl_key)
         plt.show()
 
-    def classification_map(self, fpr):
+    def classification_map(self, fpr, params):
         """
         Plot SF map with the solution/assignment for each model. Propositional classifier is not implemented.
         :param fpr: Maximum FPR of the solution
@@ -179,8 +176,8 @@ class Report:
 
         for model_name, model in model_dict.items():
             display(HTML("<h1>%s</h1>" % model_name))
-            params = model['params']
-            if params is None:
-                 model['model'].plot_map(params=fpr, save=True, col=model['fname'])
+            model_params = model['params']
+            if model_params is None:
+                model['model'].plot_map(params=fpr, save=True, col=model['fname'])
             else:
-                pass
+                model['model'].plot_map(params=params, save=True, col=model['fname'])
