@@ -37,8 +37,8 @@ class NaiveClassifier(AbstractBlockClassifier):
         results = self.data.copy()
         if self.proportion:
             fun = lambda row: row[self.positive_group] / float(row['n'])
-            results['rate'] = results.apply(fun, axis=1, raw=False)
-            results.sort_values(['rate', self.positive_group], ascending=False, inplace=True)
+            results['proportion'] = results.apply(fun, axis=1, raw=False)
+            results.sort_values(['proportion', self.positive_group], ascending=False, inplace=True)
         else:
             results.sort_values(self.positive_group, ascending=False, inplace=True)
 
