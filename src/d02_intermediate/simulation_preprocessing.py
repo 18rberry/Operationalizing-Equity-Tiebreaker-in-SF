@@ -34,6 +34,9 @@ class SimulationPreprocessing:
         
     def set_recalculate(self, recalculate):
         self.__recalculate = recalculate
+        
+    def get_student_data(self):
+        return self.__student_df.copy()
 
     @staticmethod
     def frl_cond_aalpi(row):
@@ -116,7 +119,7 @@ class SimulationPreprocessing:
         solution = model.get_solution_set(params)
         print(solution)
         self.__student_df[tiebreaker] = self.__student_df['census_block'].apply(lambda x: get_label(x, solution, block_indx))
-        print("Ratio of students recieving the wquity tiebreaker: %.2f" % self.__student_df[tiebreaker].mean())
+        print("Ratio of students recieving the equity tiebreaker: %.2f" % self.__student_df[tiebreaker].mean())
 
     @staticmethod
     def get_file_name(period):
