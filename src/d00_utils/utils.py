@@ -45,6 +45,8 @@ def add_percent_columns(frl_df: pd.DataFrame):
     
     frl_df['pctBoth'] = frl_df['nBoth'] / frl_df['n']
     frl_df['pctBothUnion'] = frl_df['nBoth'] / frl_df['nFocal'] #union normalization
+    if 'nAAFRL' in frl_df.columns:
+        frl_df['pctAAFRL'] = frl_df['nAAFRL'] / frl_df['n']
     
     return frl_df
 
@@ -105,3 +107,28 @@ def add_bayesian_bernoulli(frl_df):
         frl_df[prob_key] = (frl_df[n_key] + 1) / (frl_df['n'] + 2)
         
     return frl_df
+
+def show_values_on_bars(axs, h_v="v", space=0.4):
+    def _show_on_single_plot(ax):
+        if h_v == "v":
+            for p in ax.patches:
+                if p.get_height() * 100. < 1:
+                    continue
+                _x = p.get_x() + p.get_width() / 2
+                _y = p.get_y() + p.get_height() / 2
+                value = "%i%%" % (p.get_height() * 100.)
+                ax.text(_x, _y, value, ha="center") 
+        elif h_v == "h":
+            for p in ax.patches:
+                if p.get_width() * 100. < 1:
+                    continue
+                _x = p.get_x() + p.get_width() # + float(space)
+                _y = p.get_y() + p.get_height()
+                value = "%i%%" % (p.get_width() * 100.)
+                ax.text(_x, _y, value, ha="left")
+
+    if isinstance(axs, np.ndarray):
+        for idx, ax in np.ndenumerate(axs):
+            _show_on_single_plot(ax)
+    else:
+        _show_on_single_plot(axs)
