@@ -2,16 +2,29 @@ import pandas as pd
 import numpy as np
 from IPython.core.display import display, HTML
 import seaborn as sns
+import itertools
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
-from src.d00_utils.utils import get_group_value
+from src.d00_utils.utils import get_group_value, show_values_on_bars
 
 sns.set_theme(style="ticks", palette="pastel")
 pd.set_option('display.max_rows', None)
-figsize = (6.8,5.2)
+plt.rcParams['font.size'] = '14'
+plt.rcParams['xtick.labelsize'] = '14'
+plt.rcParams['ytick.labelsize'] = '14'
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = 'TeX Gyre Heros'
+figsize = (6, 5)
+
+fn = 'False Negative'
+tn = 'True Negative'
+tp = 'True Positive'
+fp0 = 'False Positive'
+fp1 = 'Extended Positive'
+
 
 def default_is_focal(row):
-    return (row['FRL'] + row['AALPI']) > 1
+    return int(row['FRL'] & row['AALPI'])
 
 
 def q1(x):
@@ -49,9 +62,9 @@ class SimulationEvaluation:
     __filename_template = None
     __rank_results_df = None
     __summary_dict = None
-    __tiebreaker_status_ordering = ['FN', 'TN', 'TP', 'FP1', 'FP0']
+    __tiebreaker_status_ordering = [fn, tn, tp, fp1, fp0]
 
-    def __init__(self, is_focal=None,
+    def __init__(self, method_name_dict, is_focal=None,
                  student_data_file="/share/data/school_choice_equity/simulator_data/student/drop_optout_{}.csv",
                  period="1819",
                  assignments_dir="/share/data/school_choice_equity/local_runs/Assignments/"):
@@ -69,21 +82,32 @@ class SimulationEvaluation:
         # student_df = student_df.loc[mask]
         student_df['AA'] = (student_df['resolved_ethnicity'] == 'Black or African American').astype('int64')
         student_df[self.__focal_label] = student_df.apply(lambda row: is_focal(row), axis=1).astype('int64')
+        rank_len = student_df['r1_ranked_idschool'].dropna().apply(lambda x: len(x.strip('[]').split()))
+        student_df['rank_len'] = rank_len.reindex(student_df.index)
         self.__student_df = student_df
         self.__assignment_dir = assignments_dir
+        self.__method_name_dict = method_name_dict
+        
+    def get_student_df(self):
+        return self.__student_df.copy()
+    
+    def get_assignment_df(self, equity_tiebreaker, iteration):
+        filename = self.__filename_template.format(equity_tiebreaker, iteration)
+        return pd.read_csv(self.__assignment_dir+filename).set_index('studentno')
 
-    def set_simulation_config(self, equity_tiebreaker_list, num_iterations, policy="Medium1", guard_rails=0):
+    def set_simulation_config(self, equity_tiebreaker_list, num_iterations, policy="Medium1", guard_rails=0, utility_model=True):
         """
         Set the simulation configuration we want to evaluate.
         :param equity_tiebreaker_list: list of the methods we want to evaluate
         :param num_iterations: number of iterations from simulation
         :param policy: policy name ('Medium1' or 'Con1')
         :param guard_rails: policy includes guardrails (0: yes and -1: no)
+        :param utility_model: use assignment from choice by utility model
         :return:
         """
         self.__equity_tiebreaker_list = equity_tiebreaker_list
         self.__num_iterations = num_iterations
-        self.__filename_template = self.get_filename_template(policy, guard_rails)
+        self.__filename_template = self.get_filename_template(policy, guard_rails, utility_model)
 
     def get_rank_df(self):
         """
@@ -150,8 +174,10 @@ class SimulationEvaluation:
             self.__student_df[equity_tiebreaker] = self.__student_df['ctip1']
         assignment_df[self.__cutoff_tiebreaker] = assignment_df.apply(lambda row: self.check_tiebreaker(row), axis=1,
                                                                       raw=False)
-        assignment_df[self.__focal_block] = self.__student_df[equity_tiebreaker].reindex(assignment_df.index)
-        assignment_df[self.__focal_label] = self.__student_df[self.__focal_label].reindex(assignment_df.index)
+        fun = lambda x: 'with tiebreaker' if x == 1 else 'without tiebreaker'
+        assignment_df[self.__focal_block] = self.__student_df[equity_tiebreaker].reindex(assignment_df.index).apply(fun)
+        fun = lambda x: 'focal' if x == 1 else 'not focal' 
+        assignment_df[self.__focal_label] = self.__student_df[self.__focal_label].reindex(assignment_df.index).apply(fun)
         assignment_df['AALPI'] = self.__student_df['AALPI'].reindex(assignment_df.index)
         assignment_df['FRL'] = self.__student_df['FRL'].reindex(assignment_df.index)
         self.get_student_tiebreaker_status(assignment_df)
@@ -163,23 +189,46 @@ class SimulationEvaluation:
         :param df: assigment data
         :return:
         """
-        mask_focal = df[self.__focal_label] == 1
-        mask_focal_block = df[self.__focal_block] == 1
+        mask_focal = df[self.__focal_label] == 'focal'
+        mask_focal_block = df[self.__focal_block] == 'with tiebreaker'
         mask_extended_focal = df['AALPI'] | df['FRL']
-        df[self.__tiebreaker_status] = "TN"
-        df.at[mask_focal & mask_focal_block, self.__tiebreaker_status] = "TP"
-        df.at[(~mask_focal & mask_focal_block) & mask_extended_focal, self.__tiebreaker_status] = "FP1"
-        df.at[(~mask_focal & mask_focal_block) & ~mask_extended_focal, self.__tiebreaker_status] = "FP0"
-        df.at[mask_focal & ~mask_focal_block, self.__tiebreaker_status] = "FN"
+        df[self.__tiebreaker_status] = ''
+        df.at[mask_focal & mask_focal_block, self.__tiebreaker_status] = tp
+        df.at[(~mask_focal & mask_focal_block) & mask_extended_focal, self.__tiebreaker_status] = fp1
+        df.at[(~mask_focal & mask_focal_block) & ~mask_extended_focal, self.__tiebreaker_status] = fp0
+        df.at[mask_focal & ~mask_focal_block, self.__tiebreaker_status] = fn
+        df.at[~mask_focal & ~mask_focal_block, self.__tiebreaker_status] = tn
 
-    @staticmethod
-    def get_filename_template(policy, guard_rails):
+    def get_filename_template(self, policy, guard_rails, utility_model=True):
         """
         Query the filename template for a particular policy and guard_rails setting
         :param policy: policy form simulation ('Medium1' or 'Con1')
         :param guard_rails: guard rails option (0 or -1)
         :return:
         """
+        
+        if utility_model:
+            return self.get_filename_template_model_choice(policy, guard_rails)
+        else:
+            return self.get_filename_template_real_choice(policy, guard_rails)
+            
+    @staticmethod
+    def get_filename_template_model_choice(policy, guard_rails):
+        if policy == "Con1":
+            if guard_rails == 0:
+                Assignment_pc3_035_CTIP1_round_merged123_policyCon1GuardRails0-prefLength07_tiesSTB_prefExtend0_iteration0.csv
+                return "Assignment_{}_CTIP1_round_merged123_policyCon1GuardRails0-prefLength07_tiesSTB_prefExtend0_iteration{}.csv"
+            else:
+                return "Assignment_{}_CTIP1_round_merged123_policyCon1-prefLength07_tiesSTB_prefExtend0_iteration{}.csv"
+        elif policy == "Medium1":
+            if guard_rails == 0:
+                return "Assignment_{}_CTIP1_round_merged123_policyMedium1GuardRails0-prefLength07_tiesSTB_prefExtend0_iteration{}.csv"
+            else:
+                return "Assignment_{}_CTIP1_round_merged123_policyMedium1-prefLength07_tiesSTB_prefExtend0_iteration{}.csv"
+        raise Exception("Configuration: (policy: %s, guard_rails: %s) is not available for utility model" % (policy, guard_rails))
+        
+    @staticmethod
+    def get_filename_template_real_choice(policy, guard_rails):
         if policy == "Con1":
             if guard_rails == 0:
                 return "Assignment_{}_CTIP1_round_merged123_policyCon1GuardRails0-RealPref_tiesSTB_prefExtend0_iteration{}.csv"
@@ -190,7 +239,7 @@ class SimulationEvaluation:
                 return "Assignment_{}_CTIP1_round_merged123_policyMedium1GuardRails0-RealPref_tiesSTB_prefExtend0_iteration{}.csv"
             else:
                 return "Assignment_{}_CTIP1_round_merged123_policyMedium1-RealPref_tiesSTB_prefExtend0_iteration{}.csv"
-        raise Exception("Configuration: (policy: %s, guard_rails: %s) is not available" % (policy, guard_rails))
+        raise Exception("Configuration: (policy: %s, guard_rails: %s) is not available for real preferences" % (policy, guard_rails))
 
     def get_summary_iteration(self, assignment_df, equity_tiebreaker, iteration):
         """
@@ -252,10 +301,10 @@ class SimulationEvaluation:
         """
         self.augment_assigment(assignment_df, equity_tiebreaker)
         assignment_df['iteration'] = iteration
-        assignment_df['method'] = equity_tiebreaker
+        assignment_df['method'] = self.__method_name_dict[equity_tiebreaker]
 
         return assignment_df[['iteration', self.__diversity_category_col, self.__focal_label, 'cutoff_tiebreaker',
-                              'rank', 'method', self.__focal_block, self.__tiebreaker_status]]
+                              'rank', 'method', self.__focal_block, self.__tiebreaker_status, 'designation']]
         # return assignment_df[['iteration', self.__focal_label, 'tiebreaker', 'rank', 'method']]
 
     def query_rank_df(self):
@@ -282,12 +331,13 @@ class SimulationEvaluation:
             raise Exception("`none` method is not in the loaded tiebreaker data")
         df = df.groupby(['method', 'studentno']).agg({'rank': 'mean', self.__tiebreaker_status: get_group_value, self.__diversity_category_col: get_group_value,
                                                       self.__focal_label: get_group_value})
-        df_none = df.loc['none']
+        df_none = df.loc[self.__method_name_dict['none']]
         df['change'] = np.nan
         for equity_tiebreaker in self.__equity_tiebreaker_list:
             if equity_tiebreaker == 'none':
                 pass
-            df.loc[equity_tiebreaker, 'change'] = (df.loc[equity_tiebreaker]['rank'] - df_none['rank']).values
+            key = self.__method_name_dict[equity_tiebreaker]
+            df.loc[key, 'change'] = (df.loc[key]['rank'] - df_none['rank']).values
         return df.reset_index()
 
     def get_improvement_tp(self, df):
@@ -301,18 +351,19 @@ class SimulationEvaluation:
         if "none" not in self.__equity_tiebreaker_list:
             raise Exception("`none` method is not in the loaded tiebreaker data")
         df = df.groupby(['method', 'studentno']).agg({'rank': 'mean', self.__tiebreaker_status: get_group_value})
-        df_none = df.loc['none']
+        df_none = df.loc[self.__method_name_dict['none']]
         new_rows = []
         for equity_tiebreaker in self.__equity_tiebreaker_list:
             if equity_tiebreaker == 'none':
                 pass
-            df_eqtb = df.loc[equity_tiebreaker]
-            mask = df_eqtb[self.__tiebreaker_status] == "TP"
+            key = self.__method_name_dict[equity_tiebreaker]
+            df_eqtb = df.loc[key]
+            mask = df_eqtb[self.__tiebreaker_status] == tp
             method_rows = df_eqtb.loc[mask, ['rank']].copy()
-            method_rows['method'] = equity_tiebreaker
+            method_rows['method'] = self.__method_name_dict[equity_tiebreaker]
             method_rows['label'] = "with tiebreaker"
             none_rows = df_none.loc[method_rows.index, ['rank']].copy()
-            none_rows['method'] = equity_tiebreaker
+            none_rows['method'] = self.__method_name_dict[equity_tiebreaker]
             none_rows['label'] = "without tiebreaker"
 
             new_rows += [method_rows.reset_index()] + [none_rows.reset_index()]
@@ -324,31 +375,47 @@ class SimulationEvaluation:
         :return:
         """
         df_change = self.get_improvement_over_none(self.__rank_results_df.copy())
-        mask = df_change['method'] != "none"
+        mask = df_change['method'] != self.__method_name_dict['none']
         df_change = df_change.loc[mask]
         fig1, ax1 = plt.subplots(figsize=figsize)
+        hue_order = self.__tiebreaker_status_ordering
+        order = [self.__method_name_dict[key] for key in self.__equity_tiebreaker_list[1:]]
+        n_status = len(self.__tiebreaker_status)
+        n_focal = len(self.__focal_label)
+        palette = itertools.cycle(sns.color_palette())
+        status_palette = [next(palette) for i in range(n_status)]
+        palette = itertools.cycle(sns.color_palette())
+        focal_pallete = [next(palette) for i in range(n_focal)]
+        
         sns.boxplot(ax=ax1, x="method", y="change",
                     hue=self.__tiebreaker_status,
-                    hue_order=self.__tiebreaker_status_ordering,
+                    hue_order=hue_order, palette=status_palette,
+                    order=order,
                     data=df_change,
-                    showfliers = False)
+                    showfliers = False, zorder=2)
         sns.despine(offset=10, trim=False)
-        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
+        ax1.axhline(y=0, color='k', linestyle='--', linewidth=1, zorder=1)
+        plt.legend(bbox_to_anchor=(0., -.20), loc=2, borderaxespad=0., ncol=3)
         plt.savefig('outputs/boxplot_improvement_over_none.png', bbox_inches='tight')
         plt.show()
         
-        fig2, ax2 = plt.subplots(figsize=figsize)
-        sns.barplot(ax=ax2, data=df_change, x="method", hue=self.__tiebreaker_status,
-                    hue_order=self.__tiebreaker_status_ordering, y="change")
-        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
-        plt.savefig('outputs/barplot_improvement_over_none_method.png', bbox_inches='tight')
-        plt.show()
+        # fig2, ax2 = plt.subplots(figsize=figsize)
+        # sns.barplot(ax=ax2, data=df_change, x="method", hue=self.__tiebreaker_status,
+        #             hue_order=hue_order, y="change", palette=status_palette,)
+        # plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
+        # plt.savefig('outputs/barplot_improvement_over_none_method.png', bbox_inches='tight')
+        # plt.show()
         
-        fig3, ax3 = plt.subplots(figsize=(6.8,5.2))
-        sns.barplot(ax=ax3, data=df_change, x="method", hue=self.__focal_label,
-                    hue_order=self.__tiebreaker_status_ordering, y="change")
-        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Focal')
-        plt.savefig('outputs/barplot_improvement_over_none_focal.png', bbox_inches='tight')
+        display(df_change.groupby(['method', self.__tiebreaker_status]).agg({'change': ['mean', 'std']}))
+        
+        fig3, ax3 = plt.subplots(figsize=figsize)
+        sns.boxplot(ax=ax3, data=df_change, x="method", hue=self.__focal_label, y="change",
+                    order=order,
+                    palette=focal_pallete, showfliers = False, zorder=2)
+        sns.despine(offset=10, trim=False)
+        ax3.axhline(y=0, color='k', linestyle='--', linewidth=1,zorder=1)
+        plt.legend(bbox_to_anchor=(0., -.20), loc=2, borderaxespad=0., ncol=3)
+        plt.savefig('outputs/boxplot_improvement_over_none_focal.png', bbox_inches='tight')
         plt.show()
         
     def plot_improvement_over_none_method(self, method):
@@ -357,18 +424,17 @@ class SimulationEvaluation:
         :return:
         """
         df_change = self.get_improvement_over_none(self.__rank_results_df.copy())
-        mask = df_change['method'] == method
+        mask = df_change['method'] == self.__method_name_dict[method]
         df_change = df_change.loc[mask]
-        
+        hue_order = self.__tiebreaker_status_ordering
         fig, ax = plt.subplots(figsize=figsize)
         sns.barplot(ax=ax, data=df_change, x=self.__diversity_category_col,
                     hue=self.__tiebreaker_status,
-                    hue_order=self.__tiebreaker_status_ordering, y="change")
-        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
+                    hue_order=hue_order, y="change")
+        plt.legend(bbox_to_anchor=(0., -.20), loc=2, borderaxespad=0., ncol=3)
         plt.savefig('outputs/plot_improvement_over_none_method_%s.png' % method, bbox_inches='tight')
         plt.show()
         
-
     def plot_improvement_tp(self):
         """
         Plot query from method `improvement_tp`.
@@ -376,22 +442,80 @@ class SimulationEvaluation:
         """
         df_tp = self.get_improvement_tp(self.__rank_results_df)
         fig1, ax1 = plt.subplots(figsize=figsize)
+        order = [self.__method_name_dict[key] for key in self.__equity_tiebreaker_list[1:]]
         sns.boxplot(ax=ax1, x="method", y="rank",
                     hue="label",
+                    order=order,
                     data=df_tp,
-                    showfliers = False)
+                    showfliers = False, zorder=2)
         sns.despine(offset=10, trim=False)
-        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
+        plt.legend(bbox_to_anchor=(0., -.20), loc=2, borderaxespad=0., ncol=3)
         plt.savefig('outputs/boxplot_improvement_tp.png', bbox_inches='tight')
         plt.show()
         
         fig2, ax2 = plt.subplots(figsize=figsize)
-        sns.barplot(ax=ax2, data=df_tp, x="method", hue='label', y="rank")
-        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title='Status')
+        sns.barplot(ax=ax2, data=df_tp, x="method", hue='label', y="rank", order=order)
+        plt.legend(bbox_to_anchor=(0., -.20), loc=2, borderaxespad=0., ncol=3)
         plt.savefig('outputs/barplot_improvement_tp.png', bbox_inches='tight')
         plt.show()
+        
+    def rank_results_bar_plot(self, x_axis="method", hue=None):
+        """
+        Generate histogram form rank results data.
+        :param x_axis: x axis column
+        :param hue: group column
+        :return:
+        """
+        if hue is None:
+            hue = self.__tiebreaker_status
+            
+        df = self.__rank_results_df.groupby([hue, x_axis])['rank'].count().unstack(hue).fillna(0)
+        self.generate_bar_plot(df, x_axis, hue)
+    
+    def generate_bar_plot(self, df, x_axis, hue):
+        df = df / df.sum(axis=1).values[:, np.newaxis]
+        
+        if x_axis == 'method':
+            x_axis = self.__tiebreaker_status
+            order = [self.__method_name_dict[key] for key in self.__equity_tiebreaker_list]
+        else:
+            order = df.index
+        
+        if hue == self.__tiebreaker_status:
+            hue_order = self.__tiebreaker_status_ordering
+        else:
+            hue_order= df.columns
 
-    def rank_results_bar_plot(self, x_axis=None, hue="method"):
+        palette = itertools.cycle(sns.color_palette())
+        num_levels = len(hue_order)
+        df = df.reindex(order)
+        fig1, ax1 = plt.subplots(figsize=figsize)
+        bar_width = 0.85
+        r = range(len(order))
+        bottom = np.zeros(len(order))
+        for level in range(num_levels):
+            key = hue_order[level]
+            top = df[key]
+            if key == 0:
+                ax1.bar(r, top, color=next(palette), edgecolor='white', width=bar_width, label=key)
+            else:
+                ax1.bar(r, top, bottom=bottom, color=next(palette), edgecolor='white', 
+                        width=bar_width, label=key)
+            bottom += top
+
+        # Custom x axis
+        show_values_on_bars(ax1)
+        ax1.set_xticks(r)
+        ax1.set_xticklabels(order)
+        ax1.set_xlabel(x_axis)
+        ax1.set_ylabel('Proportion')
+        plt.legend(bbox_to_anchor=(0., -.20), loc=2, borderaxespad=0., ncol=3)
+        plt.savefig('outputs/rank_results_bar_plot_%s.png' %  x_axis, bbox_inches='tight')
+        # Show graphic
+        plt.show()
+        
+
+    def rank_results_bar_plot_(self, x_axis=None, hue="method"):
         """
         Generate histogram form rank results data.
         :param x_axis: x axis column
@@ -400,8 +524,13 @@ class SimulationEvaluation:
         """
         if x_axis is None:
             x_axis = self.__tiebreaker_status
+            order = self.__tiebreaker_status_ordering
+        else:
+            order = None
         if hue == 'method':
-            hue_order=self.__equity_tiebreaker_list
+            hue_order = [self.__method_name_dict[key] for key in self.__equity_tiebreaker_list]
+        elif hue == 'status':
+            hue_order = self.__tiebreaker_status_ordering
         else:
             hue_order=None
             
@@ -409,10 +538,14 @@ class SimulationEvaluation:
         
         if plot_data[x_axis].dtype in [np.int64, np.float64]:
             plot_data[x_axis] = plot_data[x_axis].fillna(0).apply(lambda x: "%i" % x)
-        fig, ax = plt.subplots(figsize=(6.8,5.2))
-        sns.histplot(ax=ax, x=x_axis, hue=hue, hue_order=hue_order, data=plot_data, 
-                     multiple="dodge", shrink=.8,
+        fig1, ax1 = plt.subplots(figsize=figsize)
+        sns.histplot(ax=ax1, y=x_axis, hue=hue, hue_order=hue_order, data=plot_data, 
+                     multiple="dodge", 
+                     shrink=.8,
                      stat="probability", common_norm=False)
+        ax1.set_xlim(0, 1.0)
+        ax1.set_ylabel("")
+        show_values_on_bars(ax1, h_v="h")
         plt.savefig('outputs/rank_results_bar_plot_%s.png' %  x_axis, bbox_inches='tight')
         plt.show()
         
@@ -423,18 +556,25 @@ class SimulationEvaluation:
         :param hue: group column
         :return:
         """
+        hue_order = None
+        order = None
         if x_axis is None:
             x_axis = self.__tiebreaker_status
+        elif x_axis == self.__diversity_category_col:
+            order = list(range(3))
         if hue is None:
             hue = self.__diversity_category_col
+            hue_order = list(range(3))
+        elif hue == 'status':
+            hue_order = self.__tiebreaker_status_ordering
         
-        mask = self.__rank_results_df['method'] == method
+        mask = self.__rank_results_df['method'] == self.__method_name_dict[method]
         plot_data = self.__rank_results_df.loc[mask, [x_axis, hue]].copy()
         
         if plot_data[x_axis].dtype in [np.int64, np.float64]:
             plot_data[x_axis] = plot_data[x_axis].fillna(0).apply(lambda x: "%i" % x)
-        fig, ax = plt.subplots(figsize=(6.8,5.2))
-        sns.histplot(ax=ax, x=x_axis, hue=hue, data=plot_data, multiple="dodge", shrink=.8,
+        fig, ax = plt.subplots(figsize=figsize)
+        sns.histplot(ax=ax, x=x_axis, hue=hue, hue_order=hue_order, data=plot_data, multiple="dodge", shrink=.8,
                           stat="probability", common_norm=False)
         plt.savefig('outputs/rank_results_bar_plot_method_%s.png' %  x_axis, bbox_inches='tight')
         plt.show()
@@ -453,7 +593,7 @@ class SimulationEvaluation:
         for equity_tiebreaker in self.__equity_tiebreaker_list:
             mask = self.__rank_results_df['method'] == equity_tiebreaker
             display(HTML("<h3>Tiebreaker: %s</h3>" % equity_tiebreaker))
-            fig, ax = plt.subplots(figsize=(6.8,5.2))
+            fig, ax = plt.subplots(figsize=figsize)
             sns.histplot(ax=ax, x=x_axis, hue=hue, data=self.__rank_results_df.loc[mask], multiple="dodge", shrink=.8,
                               stat="probability", common_norm=False)
             plt.savefig('outputs/tiebreaker_distribution_%s.png' % equity_tiebreaker, bbox_inches='tight')
@@ -475,8 +615,10 @@ class SimulationEvaluation:
         """
         mask = self.__rank_results_df['method'] == equity_tiebreaker
         df = self.__rank_results_df.loc[mask]
-        df = pd.concat([df, pd.get_dummies(df[self.__tiebreaker_status])], axis=1).groupby('studentno').mean()
+        df = pd.concat([df, pd.get_dummies(df[self.__tiebreaker_status])], axis=1)
         df = df.groupby('studentno').mean()
+        df['rank_len'] = self.__student_df['rank_len'].reindex(df.index)
+        df.dropna(inplace=True)
         y = df['rank'].copy()
         x = df.copy().drop(columns=['iteration', 'rank', self.__focal_block, 'focal'])
         x['intercept'] = 1.
@@ -501,13 +643,35 @@ class SimulationEvaluation:
                                                        'iteration']).agg({'rank': lambda x: topkrank(x, k)})
         
         
-        fig1, ax1 = plt.subplots(figsize=(6.8,5.2))
-        sns.barplot(ax=ax1, data=topkrank_pct.reset_index(), x="method", hue=hue, y="rank")
-        for hue_val in topkrank_pct.loc['none'].index.get_level_values(hue).unique():
-            plt.axhline(y=topkrank_pct.loc['none'].loc[hue_val, 'rank'].mean(), color='black')
-        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0., title=hue)
+        fig1, ax1 = plt.subplots(figsize=figsize)
+        order = [self.__method_name_dict[key] for key in self.__equity_tiebreaker_list]
+        sns.barplot(ax=ax1, data=topkrank_pct.reset_index(), x="method", hue=hue, y="rank",
+                    order=order, zorder=2)
+        ax1.set_ylim(0, 1)
+        ax1.set_ylabel("Proportion of students getting\n their top %i choice" % k)
+        key = self.__method_name_dict['none']
+        for hue_val in topkrank_pct.loc[key].index.get_level_values(hue).unique():
+            plt.axhline(y=topkrank_pct.loc[key].loc[hue_val, 'rank'].mean(), color='k', linestyle='--', linewidth=1,zorder=1)
+        plt.legend(bbox_to_anchor=(.95, 1), loc=2, borderaxespad=0.)
         plt.savefig('outputs/top%irank.png' % k, bbox_inches='tight')
         plt.show()
+        
+        display(topkrank_pct.groupby(['method', hue]).agg({'rank': ['mean', 'std']}))
+        
+    def rank_results_bar_plot_by_method2(self, method, x_axis="method", hue=None):
+        """
+        Generate histogram form rank results data.
+        :param method: methodology to plot
+        :param x_axis: x axis column
+        :param hue: group column
+        :return:
+        """
+        if hue is None:
+            hue = self.__tiebreaker_status
+            
+        df = self.__rank_results_df.groupby(['method', hue, x_axis])['rank'].count().unstack(hue).fillna(0)
+        key = self.__method_name_dict[method]
+        self.generate_bar_plot(df.loc[key], x_axis, hue)
 
 
 
