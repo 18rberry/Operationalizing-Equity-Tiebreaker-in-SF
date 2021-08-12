@@ -116,7 +116,7 @@ def show_values_on_bars(axs, h_v="v", space=0.4):
                     continue
                 _x = p.get_x() + p.get_width() / 2
                 _y = p.get_y() + p.get_height() / 2
-                value = "%i%%" % (p.get_height() * 100.)
+                value = "%.1f%%" % (p.get_height() * 100.)
                 ax.text(_x, _y, value, ha="center") 
         elif h_v == "h":
             for p in ax.patches:
@@ -124,7 +124,7 @@ def show_values_on_bars(axs, h_v="v", space=0.4):
                     continue
                 _x = p.get_x() + p.get_width() # + float(space)
                 _y = p.get_y() + p.get_height()
-                value = "%i%%" % (p.get_width() * 100.)
+                value = "%.1f%%" % (p.get_width() * 100.)
                 ax.text(_x, _y, value, ha="left")
 
     if isinstance(axs, np.ndarray):
