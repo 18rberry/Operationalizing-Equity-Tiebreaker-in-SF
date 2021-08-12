@@ -190,3 +190,26 @@ class SimulationPreprocessing:
             student_out.set_index('Unnamed: 0', inplace=True)
             student_out.reset_index(inplace=True)
         student_out.to_csv(self.output_path + self.fname, index=False)
+
+        
+if __name__ == "__main__":
+    frl_key = 'tk5'
+    sp = SimulationPreprocessing(frl_key=frl_key, period="1819")
+
+    from src.d04_modeling.naive_classifier import NaiveClassifier
+
+    # Add the frl labels to the new student data
+    sp.add_frl_labels()
+    # Load the model used for the tiebreaker
+    tiebreaker = 'naive016'
+    fpr = 0.16
+    model = NaiveClassifier(positive_group='nBoth', frl_key=frl_key, proportion=True)
+
+    # Add the tiebreaker to the student data
+    sp.add_equity_tiebreaker(model, params=fpr, tiebreaker=tiebreaker)
+
+    # Use the new student data to update the student data that is going to be used for the simulations
+    student_out = sp.update_student_data(tiebreaker)
+
+    # Export the updated student data that can be used for the simulations
+    sp.save_student_data(student_out)
