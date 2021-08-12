@@ -110,6 +110,11 @@ class SimulationEvaluation:
         self.__student_df = student_df
         self.__assignment_dir = assignments_dir
         self.__method_name_dict = method_name_dict
+    
+    @staticmethod
+    def get_available_models(student_data_file=SIMULATOR_STUDENT_DATA_PATH, period="1819"):
+        df_cols =  pd.read_csv(student_data_file.format(period)).columns
+        return df_cols[65:]
         
     def get_student_df(self):
         return self.__student_df.copy()
