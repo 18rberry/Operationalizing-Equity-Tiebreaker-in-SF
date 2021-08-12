@@ -6,6 +6,7 @@ import itertools
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 from src.d00_utils.utils import get_group_value, show_values_on_bars
+from src.d00_utils.file_paths import SIMULATOR_STUDENT_DATA_PATH, ASSIGMENTS_OUTPUT_PATH
 
 sns.set_theme(style="ticks", palette="pastel")
 pd.set_option('display.max_rows', None)
@@ -75,9 +76,9 @@ class SimulationEvaluation:
     __tiebreaker_status_ordering = [fn, tn, tp, fp1, fp0]
 
     def __init__(self, method_name_dict, is_focal=None,
-                 student_data_file="/share/data/school_choice_equity/simulator_data/student/drop_optout_{}.csv",
+                 student_data_file=SIMULATOR_STUDENT_DATA_PATH,
                  period="1819",
-                 assignments_dir="/share/data/school_choice_equity/local_runs/Assignments/"):
+                 assignments_dir=ASSIGMENTS_OUTPUT_PATH):
         """
 
         :param is_focal: function that labels each student as focal given the student features
