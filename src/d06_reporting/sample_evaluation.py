@@ -50,9 +50,9 @@ class SampleEvaluation:
         positive_group = propositional_model.positive_group
         model_dict = OrderedDict()
         model_dict['Benchmark'] = {'model': NaiveClassifier(positive_group=positive_group, proportion=True,
-                                                                frl_key=frl_key),
-                                      'params': None,
-                                      'fname': 'naivep'}
+                                                            frl_key=frl_key),
+                                   'params': None,
+                                   'fname': 'naivep'}
         model_dict['CTIP1'] = {'model': CtipClassifier(positive_group=positive_group, frl_key=frl_key),
                                'params': None,
                                'fname': 'ctip'}
@@ -180,6 +180,11 @@ class SampleEvaluation:
         return fpr
     
     def get_dssg_et_params(self, fpr):
+        """
+        Query the parameters for the prepositional model at a given FPR.
+        :param fpr:  model fpr
+        :return:
+        """
         model = self.__model_dict['DSSG ET']['model']
         params = self.__model_dict['DSSG ET']['params']
         roc_df = model.get_roc(params).sort_values('fpr')
