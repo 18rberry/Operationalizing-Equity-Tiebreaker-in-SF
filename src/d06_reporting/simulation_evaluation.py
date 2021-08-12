@@ -114,6 +114,7 @@ class SimulationEvaluation:
     @staticmethod
     def get_available_models(student_data_file=SIMULATOR_STUDENT_DATA_PATH, period="1819"):
         df_cols =  pd.read_csv(student_data_file.format(period)).columns
+        # TODO: check for which models we actually have simulation results
         return df_cols[65:]
         
     def get_student_df(self):
@@ -369,7 +370,10 @@ class SimulationEvaluation:
         for equity_tiebreaker in self.__equity_tiebreaker_list:
             for iteration in range(self.__num_iterations):
                 filename = self.__filename_template.format(equity_tiebreaker, iteration)
-                assignment_df = pd.read_csv(self.__assignment_dir+filename).set_index('studentno')
+                try:
+                    assignment_df = pd.read_csv(self.__assignment_dir+filename).set_index('studentno')
+                except FileNotFoundError:
+                    raise Exception("Model %s iteration %i has not been simulated" % (equity_tiebreaker, iteration))
                 rank_results_df += [self.get_rank_iteration(assignment_df, equity_tiebreaker, iteration).reset_index()]
 
         self.__rank_results_df = pd.concat(rank_results_df, axis=0)
