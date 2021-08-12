@@ -5,6 +5,7 @@ import seaborn as sns
 import itertools
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
+from scipy.stats import sem
 from src.d00_utils.utils import get_group_value, show_values_on_bars
 from src.d00_utils.file_paths import SIMULATOR_STUDENT_DATA_PATH, ASSIGMENTS_OUTPUT_PATH
 
@@ -24,6 +25,17 @@ fp0 = 'False Positive'
 fp1 = 'Extended Positive'
 none_method = 'none'
 student_aa_col = 'Black or African American'
+
+
+def lower_95ci(x):
+    return np.mean(x) - 1.96 * np.std(x) / np.sqrt(x.size)
+
+
+def upper_95ci(x):
+    return np.mean(x) + 1.96 * np.std(x) / np.sqrt(x.size)
+
+
+stats_list = ['mean', 'std', sem, lower_95ci, upper_95ci]
 
 
 def default_is_focal(row):
@@ -408,20 +420,25 @@ class SimulationEvaluation:
             new_rows += [method_rows.reset_index()] + [none_rows.reset_index()]
         return pd.concat(new_rows, axis=0)
 
-    def plot_improvement_over_none(self):
+    def plot_improvement_over_none(self, hue=None):
         """
         Plot query from method `improvement_over_none`.
+        :param hue: group column
         :return:
         """
+        hue_order = None
+        if hue is None:
+            hue = self.__tiebreaker_status
+            hue_order = self.__tiebreaker_status_ordering
+            
         df_change = self.get_improvement_over_none(self.__rank_results_df.copy())
         mask = df_change['method'] != self.__method_name_dict[none_method]
         df_change = df_change.loc[mask]
-        fig1, ax1 = plt.subplots(figsize=figsize)
-        hue_order = self.__tiebreaker_status_ordering
+        fig1, ax1 = plt.subplots(figsize=figsize) 
         order = [self.__method_name_dict[key] for key in self.__equity_tiebreaker_list[1:]]
         
         sns.boxplot(ax=ax1, x="method", y="change",
-                    hue=self.__tiebreaker_status,
+                    hue=hue,
                     hue_order=hue_order,
                     order=order,
                     data=df_change,
@@ -429,19 +446,10 @@ class SimulationEvaluation:
         sns.despine(offset=10, trim=False)
         ax1.axhline(y=0, color='k', linestyle='--', linewidth=1, zorder=1)
         plt.legend(bbox_to_anchor=(0., -.20), loc=2, borderaxespad=0., ncol=3)
-        plt.savefig('outputs/boxplot_improvement_over_none.png', bbox_inches='tight')
+        plt.savefig('outputs/boxplot_improvement_over_none_%s.png' % hue, bbox_inches='tight')
         plt.show()
         
-        display(df_change.groupby(['method', self.__tiebreaker_status]).agg({'change': ['mean', 'std']}))
-        
-        fig3, ax3 = plt.subplots(figsize=figsize)
-        sns.boxplot(ax=ax3, data=df_change, x="method", hue=self.__focal_label, y="change",
-                    order=order, showfliers=False, zorder=2)
-        sns.despine(offset=10, trim=False)
-        ax3.axhline(y=0, color='k', linestyle='--', linewidth=1, zorder=1)
-        plt.legend(bbox_to_anchor=(0., -.20), loc=2, borderaxespad=0., ncol=3)
-        plt.savefig('outputs/boxplot_improvement_over_none_focal.png', bbox_inches='tight')
-        plt.show()
+        display(df_change.groupby(['method', hue]).agg({'change': stats_list}).round(2))
         
     def plot_improvement_over_none_method(self, method):
         """
@@ -476,12 +484,6 @@ class SimulationEvaluation:
         sns.despine(offset=10, trim=False)
         plt.legend(bbox_to_anchor=(0., -.20), loc=2, borderaxespad=0., ncol=3)
         plt.savefig('outputs/boxplot_improvement_tp.png', bbox_inches='tight')
-        plt.show()
-        
-        fig2, ax2 = plt.subplots(figsize=figsize)
-        sns.barplot(ax=ax2, data=df_tp, x="method", hue='label', y="rank", order=order)
-        plt.legend(bbox_to_anchor=(0., -.20), loc=2, borderaxespad=0., ncol=3)
-        plt.savefig('outputs/barplot_improvement_tp.png', bbox_inches='tight')
         plt.show()
 
     def rank_results_bar_plot(self, x_axis=None, hue=None, stacked=True):
@@ -631,21 +633,6 @@ class SimulationEvaluation:
         plt.savefig('outputs/rank_results_bar_plot_method_%s.png' % x_axis, bbox_inches='tight')
         plt.show()
 
-    def rank_results_bar_plot_by_method(self, x_axis=None, hue=None):
-        """
-        Generate histogram form rank results data for each method.
-        :param x_axis: x axis column
-        :param hue: group column
-        """
-        if x_axis is None:
-            x_axis = self.__cutoff_tiebreaker
-        if hue is None:
-            hue = self.__focal_label
-
-        for equity_tiebreaker in self.__equity_tiebreaker_list:
-            display(HTML("<h3>Tiebreaker: %s</h3>" % self.__method_name_dict[equity_tiebreaker]))
-            self.rank_results_bar_plot_method(equity_tiebreaker, x_axis, hue)
-
     def regression_analysis_all(self):
         """
         Regression analysis with tiebreaker covariates and diversity category.
@@ -703,9 +690,9 @@ class SimulationEvaluation:
         plt.savefig('outputs/top%irank.png' % k, bbox_inches='tight')
         plt.show()
         
-        display(topkrank_pct.groupby(['method', hue]).agg({'rank': ['mean', 'std']}))
+        display(topkrank_pct.groupby(['method', hue]).agg({'rank': stats_list}))
         
-    def rank_results_bar_plot_by_method2(self, method, x_axis="method", hue=None):
+    def rank_results_bar_plot_by_method(self, method, x_axis="method", hue=None):
         """
         Generate histogram form rank results data.
         :param method: methodology to plot
@@ -719,3 +706,6 @@ class SimulationEvaluation:
         df = self.__rank_results_df.groupby(['method', hue, x_axis])['rank'].count().unstack(hue).fillna(0)
         key = self.__method_name_dict[method]
         self.generate_bar_plot(df.loc[key], x_axis, hue)
+
+        plt.legend(bbox_to_anchor=(0., -.20), loc=2, borderaxespad=0., ncol=3)
+        plt.savefig('outputs/rank_results_bar_plot_by_method_%s.png' % x_axis, bbox_inches='tight')
