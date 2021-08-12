@@ -110,6 +110,11 @@ class SimulationEvaluation:
         self.__student_df = student_df
         self.__assignment_dir = assignments_dir
         self.__method_name_dict = method_name_dict
+    
+    @staticmethod
+    def get_available_models(student_data_file=SIMULATOR_STUDENT_DATA_PATH, period="1819"):
+        df_cols =  pd.read_csv(student_data_file.format(period)).columns
+        return df_cols[65:]
         
     def get_student_df(self):
         return self.__student_df.copy()
@@ -368,6 +373,15 @@ class SimulationEvaluation:
                 rank_results_df += [self.get_rank_iteration(assignment_df, equity_tiebreaker, iteration).reset_index()]
 
         self.__rank_results_df = pd.concat(rank_results_df, axis=0)
+        
+        designation_rate = self.__rank_results_df.groupby('method')['designation'].mean()
+        designation_rate = designation_rate.rename('Designation Rate').to_frame().round(2)
+        display(designation_rate)
+        
+        model_roc =  self.__rank_results_df.groupby(['method', 'status'])['rank'].count().unstack('status').fillna(0)
+        model_roc['FPR'] = model_roc.apply(lambda row: (row['False Positive'] + row['Extended Positive']) / (row['False Positive'] + row['Extended Positive'] + row['True Negative']), axis=1)
+        model_roc['TPR'] = model_roc.apply(lambda row: (row['True Positive']) / (row['True Positive'] + row['False Negative']), axis=1)
+        display(model_roc.round(2))
 
     def get_improvement_over_none(self, df):
         """
