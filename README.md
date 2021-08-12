@@ -18,6 +18,13 @@ A significant limitation of using blocks as a geographical unit is that, in gene
 | ----------- | ----------- | ------------- | ---------------- | ------------------ | ------------ |
 | The Block id (also refered to as geoid) is a 15 digit block identificator. This is the smallest geographic unit. | The Block Group id is a 10 digit block identifier that groups multiple blocks. | The Geoid10 Group id was determined by Joseph to group FRL and AALPI Data. It has a one to one correspondence for big block and groups blocks with low counts. | Demographic data at a block level collected from multiple sources. This information is available at a block level. | FRL and AALPI counts at a Geoid10 Group level. This can be used to identify focal students. | Cleaned student data from previous years assignments. This information is available at a student level.|
 
+Important files that might have to be updated when cloning this repository outside of the SOAL cluster:
+- `src/d00_utils/file_paths.py`
+- `src/d01_data/abstract_data_api.py`
+- `src/d01_data/block_data_api.py`
+- `src/d01_data/student_data_api.py`
+It might also be necessary to generate the pickled version of the block data. An crude example of how to do this can be found in the notebook `20210718-jjl-create-pkl-data.ipynb`.
+
 # Evaluation of Tiebreakers
 
 We are going to consider two methodologies to evaluate different tiebreakers: sample evaluation and counterfactual simulation.
