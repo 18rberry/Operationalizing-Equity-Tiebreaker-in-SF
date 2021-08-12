@@ -16,7 +16,7 @@ A significant limitation of using blocks as a geographical unit is that, in gene
 
 | Block       | Block Group | Geoid10 Group | Demographic Data | FRL and AALPI Data | Student Data |
 | ----------- | ----------- | ------------- | ---------------- | ------------------ | ------------ |
-| The Block id is a 15 digit block identificator. This is the smallest geographic unit. | The Block Group id is a 10 digit block identifier that groups multiple blocks. | The Geoid10 Group id was determined by Joseph to group FRL and AALPI Data. It has a one to one correspondence for big block and groups blocks with low counts. | Demographic data at a block level collected from multiple sources. This information is available at a block level. | FRL and AALPI counts at a Geoid10 Group level. This can be used to identify focal students. | Cleaned student data from previous years assignments. This information is available at a student level.|
+| The Block id (also refered to as geoid) is a 15 digit block identificator. This is the smallest geographic unit. | The Block Group id is a 10 digit block identifier that groups multiple blocks. | The Geoid10 Group id was determined by Joseph to group FRL and AALPI Data. It has a one to one correspondence for big block and groups blocks with low counts. | Demographic data at a block level collected from multiple sources. This information is available at a block level. | FRL and AALPI counts at a Geoid10 Group level. This can be used to identify focal students. | Cleaned student data from previous years assignments. This information is available at a student level.|
 
 # Evaluation of Tiebreakers
 
@@ -32,6 +32,11 @@ The sample evaluation consists on comparing the portion of _focal_ students bene
 
 ## Counterfactual Simulation
 The counterfactual simulation consists of using the school assignment simulation engine to evaluate and compare the average performance of _focal_ students in the school assignment process under the proposed equity tiebreaker. This is what is important after all.
+
+To run the counterfactual simulation, we first need to add the new tiebreakers to the student data. Under the current setup of the `dssg_sfusd` repository (this repository) and the `sfusd-project` repository, we have to create and maintain a separate version of the student data that includes a column for each tiebreaker we wish to simulate. The simulation and evaluation of each tiebreaker require three steps:
+1. First, we need to update (or create if it doesn't exist) a version of the student data that has a binary column indicating if a student has the tiebreaker. We can do this by using the `SimulationPreprocessing` object located in the `src.d02_intermediate.simulation_preprocessing` module. For the DSSG summer program, we used the notebook `20210730-jjl-preprocess-simulation.ipynb`.
+2. Once we update the student data with the new equity tiebreaker we need to run a version of the `sfusd-project` simulation engine that we adapted to run the equity tiebreaker. This version of the simulation engine is in the `dssg-equity-tiebreaker` branch. We can find the necessary path configuration to run this version of the simulator engine in the file`configs/dssg_path_config.yaml` found in this project.
+3. Finally, once we have simulated the policy with the corresponding tiebreaker we can use the `SimulationEvaluation` object located in the `src.d06_reporting.simulation_evaluation` module. An example of the use of this object can be found in the `report/` notebooks that evaluate the results.
 
 # Methodologies
 
