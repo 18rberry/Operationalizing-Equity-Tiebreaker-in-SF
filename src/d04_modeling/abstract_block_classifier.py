@@ -291,14 +291,14 @@ class AbstractBlockClassifier:
                                                         legend=False, title=title, save=save)
         return ax
     
-    def plot_map_new(self, map_df_data, params, ax=None):
-        solution_set = self.get_solution_set(params)
+    def plot_map_new(self, map_df_data, params, missing_vals, ax=None):
+        #solution_set = self.get_solution_set(params)
         #map_df_data["tiebreaker"] = map_df_data['group'].apply(lambda x: get_label(x, solution_set))
 
         if ax is None:
             fig, ax = plt.subplots(figsize=(25,25))
 
-        ax = self.__classifier_data_api.plot_map_column(map_df_data, col="New Gent", cmap="YlOrRd", ax=ax)
+        ax = self.__classifier_data_api.plot_map_column(map_df_data, missing_vals=missing_vals, col="New Gent", cmap="YlOrRd", ax=ax)
         return ax
         
     def get_confusion_matrix(self, params):

@@ -52,7 +52,7 @@ class Gentrification:
     def gentrification_vs_demo(self, frl_df_raw, df):
         grouped_Geoid = frl_df_raw
         grouped_Geoid_filtered = grouped_Geoid[grouped_Geoid["Geoid Group"].astype('str').str.len() > 3]
-        grouped_Geoid_filtered["New Geoid"] = grouped_Geoid_filtered["Geoid Group"].astype(str).str[:10].astype(int)
+        grouped_Geoid_filtered.loc[: , "New Geoid"] = grouped_Geoid_filtered.loc[: , "Geoid Group"].astype(str).str[:10].astype(int)
         grouped_Geoid_filtered = grouped_Geoid_filtered.merge(df, left_on = "New Geoid", right_on = "GEOID")
         grouped_Geoid_new = grouped_Geoid_filtered[["GEOID", "4YR AVG Student Count", "4YR AVG FRL Count", 
                                                     "4YR AVG Eth Flag Count", "4YR AVG Combo Flag Count",
@@ -82,7 +82,10 @@ class Gentrification:
         
     def stacked_barchart(self, frl_df_raw, df):
         labels = ["Student", "FRL", "AALPI", "Combo"]
-        gentrification_agg = self.grouped_barchart(frl_df_raw, df)[1]
+#         gentrification_agg = self.grouped_barchart(frl_df_raw, df)[1]
+#         print(gentrification_agg)
+        grouped_Geoid_gent = self.gentrification_vs_demo(frl_df_raw, df)
+        gentrification_agg = grouped_Geoid_gent.groupby("Gentrification").mean()
         plt.bar(self.gentrification_cols, gentrification_agg["4YR AVG Student Count"])
         plt.bar(self.gentrification_cols, gentrification_agg["4YR AVG FRL Count"])
         plt.bar(self.gentrification_cols, gentrification_agg["4YR AVG Eth Flag Count"])
