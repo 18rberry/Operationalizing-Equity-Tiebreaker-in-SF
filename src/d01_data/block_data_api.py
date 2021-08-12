@@ -89,7 +89,7 @@ class BlockDataApi(AbstractDataApi):
             if frl_key not in _block_frl_file_path.keys():
                 raise Exception("Missing key for frl data")
             
-            if "data" not in self.__cache_frl.keys():
+            if "data" not in self.__cache_frl[frl_key].keys():
                 df_field = self.read_data(_block_frl_file_path[frl_key] + _fields_extension)
                 
                 # For grouped blocks we need to average the counts:
@@ -290,7 +290,30 @@ class BlockDataApi(AbstractDataApi):
         block_aalpi['score'] = block_aalpi['aalpi_pct'] / block_aalpi['aalpi_pct'].max()
 
         return block_aalpi
+    
+    def add_aa2frl(self, frl_key=_default_frl_key):
+        if 'nAA' in self.__cache_frl[frl_key]['data'].columns:
+            return None
+        print("Adding African-American counts to FRL data...")
+        block_data = self.get_data().set_index('Block')
+        frl_data = self.get_data(frl=True, frl_key=frl_key)
+        mask = block_data.columns.str.fullmatch(r'2017 K-5 Black')
+        aa_col = block_data.columns[mask][0]
+        block_data[aa_col] = block_data[aa_col].apply(lambda x: 0 if x == '--' else int(x))
 
+        pct_aa = block_data[aa_col] / block_data[_aalpi_col]
+        pct_aa.fillna(0, inplace=True)
+        mask = ~pct_aa.index.duplicated()
+        pct_aa = pct_aa.loc[mask]
+
+        frl_data.set_index('Geoid10', inplace=True)
+        frl_data['pctAA'] = pct_aa.reindex(frl_data.index).fillna(0).values
+        frl_data['nAA'] = frl_data['pctAA'].values * frl_data['4YR AVG Eth Flag Count']
+        frl_data.reset_index(inplace=True)
+        
+
+        self.__cache_frl[frl_key]['data'] = frl_data
+        
 
 if __name__ == "__main__":
     # execute only if run as a script

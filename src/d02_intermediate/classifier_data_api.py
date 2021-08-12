@@ -23,6 +23,9 @@ block_columns_rename = {'CTIP_2013 assignment': 'CTIP13',
                         'SF Analysis Neighborhood':'Neighborhood',
                         'SFHA_ex_Sr':'Housing'}
 
+frl_column_dict = {'Geoid Group': 'group', '4YR AVG Student Count': 'n', '4YR AVG FRL Count': 'nFRL',
+       '4YR AVG Eth Flag Count': 'nAALPI', '4YR AVG Combo Flag Count': 'nBoth'}
+
 class ClassifierDataApi:
     __block_data = None
     __redline_data = None
@@ -132,12 +135,15 @@ class ClassifierDataApi:
         :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
         :return:
         """
+        block_data_api.load_data(frl=True, frl_key=frl_key)
+        block_data_api.add_aa2frl(frl_key=frl_key)
         frl_df = block_data_api.get_data(frl=True, frl_key=frl_key).set_index('Geoid10')
         # print(frl_df)
         frl_df.index.name = geoid_name
-        frl_df.columns = ['group', 'n', 'nFRL', 'nAALPI', 'nBoth']
+        frl_df.rename(columns=frl_column_dict, inplace=True)
         frl_df['nFocal'] = frl_df.apply(lambda row: row['nFRL'] + row['nAALPI'] - row['nBoth'],
                                         axis=1, raw=False)
+        frl_df['nAAFRL'] = frl_df.apply(lambda row: row['nBoth'] * row['pctAA'], axis=1)
 
         # we want to find the blocks that share a group index
         mask = frl_df['group'] < 1000

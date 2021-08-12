@@ -88,7 +88,13 @@ class AbstractBlockClassifier:
         # Initialize a prediciton and a confusion matrix dictionary (parameter tuples are keys):
         self.prediction_dict = dict()
         self.confusion_dict = dict()
-
+        
+        self.__frl_key = frl_key
+        
+    def get_frl_key(self):
+        return self.__frl_key
+        
+        
     def set_negative_group(self, positive_group, negative_group):
         """
         Update the negative group column
