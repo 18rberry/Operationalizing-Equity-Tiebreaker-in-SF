@@ -11,7 +11,7 @@ import seaborn as sns
 
 import sys
 sys.path.append('../')
-# sns.set_theme(style="ticks", palette="pastel")
+sns.set_theme(palette="pastel")
 
 from src.d02_intermediate.classifier_data_api import ClassifierDataApi
 from src.d04_modeling.knapsack_classifier import KnapsackClassifier
