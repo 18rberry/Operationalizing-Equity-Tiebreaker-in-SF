@@ -689,7 +689,7 @@ class SimulationEvaluation:
         plt.savefig('outputs/top%irank.png' % k, bbox_inches='tight')
         plt.show()
         
-        display(topkrank_pct.groupby(['method', hue]).agg({'rank': stats_list}))
+        display(topkrank_pct.groupby(['method', hue]).agg({'rank': stats_list}).round(2))
         
     def rank_results_bar_plot_by_method(self, method, x_axis="method", hue=None):
         """
