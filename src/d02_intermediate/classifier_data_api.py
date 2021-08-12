@@ -7,7 +7,7 @@ from time import time
 from src.d01_data.block_data_api import BlockDataApi, _default_frl_key
 from src.d01_data.student_data_api import StudentDataApi, _block_features, _census_block_column, \
 _diversity_index_features
-
+from src.d00_utils.file_paths import GEO_DATA_PATH, REDLINE_DATA_PATH
 from src.d00_utils.utils import get_group_value, add_percent_columns
 
 geoid_name = 'geoid'
@@ -17,7 +17,7 @@ block_data_api = BlockDataApi()
 periods_list = ["1415", "1516", "1617", "1718", "1819", "1920"]
 student_data_api = StudentDataApi()
 
-#Those are the demographic columns we want:
+# Those are the demographic columns we want:
 block_columns = ['BlockGroup','CTIP_2013 assignment','SF Analysis Neighborhood','SFHA_ex_Sr']
 block_columns_rename = {'CTIP_2013 assignment': 'CTIP13',
                         'SF Analysis Neighborhood':'Neighborhood',
@@ -25,6 +25,7 @@ block_columns_rename = {'CTIP_2013 assignment': 'CTIP13',
 
 frl_column_dict = {'Geoid Group': 'group', '4YR AVG Student Count': 'n', '4YR AVG FRL Count': 'nFRL',
        '4YR AVG Eth Flag Count': 'nAALPI', '4YR AVG Combo Flag Count': 'nBoth'}
+
 
 class ClassifierDataApi:
     __block_data = None
@@ -44,6 +45,7 @@ class ClassifierDataApi:
     def get_block_data(self, redline=True, frl_key=_default_frl_key, pct_frl=False):
         """
         Query block data from all three sources.
+        :param redline: boolean to add redline status
         :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
         :param pct_frl: boolean to add the percent values of the frl variables
         :return:
@@ -72,7 +74,7 @@ class ClassifierDataApi:
             
             self.__block_data = df
             
-            #Add the redline status:
+            # Add the redline status:
             if redline:
                 block_gdf = self.get_map_df_data(cols="BlockGroup")
                 self.__block_data["Redline"] = self.get_redline_status(block_gdf)
@@ -84,7 +86,7 @@ class ClassifierDataApi:
         Query map data used to build the geographic maps
         """
         if self.__map_data is None:
-            geodata_path = '/share/data/school_choice/dssg/census2010/'
+            geodata_path = GEO_DATA_PATH
             file_name = 'geo_export_e77bce0b-6556-4358-b36b-36cfcf826a3c'
             data_types = ['.shp', '.dbf', '.prj', '.shx']
 
@@ -101,7 +103,7 @@ class ClassifierDataApi:
         Query HOLC grades map data used in the redline criterion
         """
         if self.__redline_data is None:
-            geodata_path = '/share/data/school_choice_equity/data/'
+            geodata_path = REDLINE_DATA_PATH
             file_name = 'CASanFrancisco1937'
             data_type = '.geojson'
 
@@ -165,15 +167,15 @@ class ClassifierDataApi:
         :return:
         """
         
-        #Collect the meaningful demographic columns:
+        # Collect the meaningful demographic columns:
         demo_df = block_data_api.get_data().set_index('Block')[block_columns].dropna(subset=['BlockGroup'])
-        #Clean the SFHA column:
+        # Clean the SFHA column:
         demo_df = demo_df.replace({'SFHA_ex_Sr': {'yes': True, 'no': False}})
         
-        #Rename the columns for easier acces:
+        # Rename the columns for easier acces:
         demo_df.rename(columns=block_columns_rename, inplace=True)
         
-        #Set index as geoid
+        # Set index as geoid
         demo_df.index.name = geoid_name
         
         return demo_df
@@ -231,8 +233,8 @@ class ClassifierDataApi:
             save = True
 
         map_df_data.plot(column=col, ax=ax, cmap=cmap, 
-                             legend=legend, legend_kwds={'orientation': "horizontal"})
-        missing_vals.plot(color="lightgrey", hatch = "///", label = "Missing values", ax=ax)
+                         legend=legend, legend_kwds={'orientation': "horizontal"})
+        missing_vals.plot(color="lightgrey", hatch="///", label="Missing values", ax=ax)
         if title is None:
             ax.set_title(col, fontsize=12)
         else:
