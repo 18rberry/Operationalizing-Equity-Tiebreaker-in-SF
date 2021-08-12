@@ -8,13 +8,16 @@ class CtipClassifier(AbstractSimpleClassifier):
     """
     
     def __init__(self, positive_group='nFRL', negative_group='nOther', frl_key=_default_frl_key,
-                 group_criterion=False, len_BG=8):
+                 group_criterion=False, len_BG=8,
+                 eligibility_classifier=None, eligibility_params=[]):
         """
         :param positive_group: column name of the positive counts
         :param negative_group: column name of the negative counts
         :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
         :param group_criterion: aggregate/group block data by neighborhood ('nbhd' or 'block_group')
         :param len_BG: length of block group code
+        :param eligibility_classifier: AbstractBlockClassifier object that is used for the eligibility classification
+        :param eligibility_params: parameters (if any) that must be passed to the eligibility_classifier
         """
         columns = [positive_group]
         super().__init__(columns=columns,
