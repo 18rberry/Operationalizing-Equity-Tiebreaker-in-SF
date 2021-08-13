@@ -49,14 +49,13 @@ class SampleEvaluation:
         AbstractBlockClassifier().refresh()
         positive_group = propositional_model.positive_group
         model_dict = OrderedDict()
+        model_dict['CTIP1'] = {'model': CtipClassifier(positive_group=positive_group, frl_key=frl_key),
+                               'params': None,
+                               'fname': 'ctip'}
         model_dict['Benchmark'] = {'model': NaiveClassifier(positive_group=positive_group, proportion=True,
                                                             frl_key=frl_key),
                                    'params': None,
                                    'fname': 'naivep'}
-        model_dict['CTIP1'] = {'model': CtipClassifier(positive_group=positive_group, frl_key=frl_key),
-                               'params': None,
-                               'fname': 'ctip'}
-    
         model_dict['DSSG ET'] = {'model': propositional_model,
                                  'params': propositional_params,
                                  'fname': 'pc'}
