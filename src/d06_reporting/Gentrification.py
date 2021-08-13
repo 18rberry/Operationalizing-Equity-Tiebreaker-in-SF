@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-#import geopandas as gpd
+import geopandas as gpd
 import matplotlib.pyplot as plt
 import collections
 import seaborn as sns
@@ -18,8 +18,13 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append('../')
 
-class Gentrification: 
+from src.d00_utils.file_paths import SF_GENT_PATH, REDLINING_PATH
 
+
+class Gentrification: 
+    
+    SF_gent = pd.read_csv(SF_GENT_PATH)
+    
     def __init__(self):
         super().__init__()
         self.gentrification_cols = ["OD", "ARG", "EOG", "AdvG", "SMMI", "ARE", "BE", "SAE"]
@@ -142,13 +147,11 @@ class Gentrification:
         merged_tiebreaker_filtered.plot(ax=ax, alpha = 0.7, color = 'green')
         return self.missing_vals.plot(color="lightgrey", hatch = "///", label = "Missing values", ax=ax)
     
-    def redlining_data(self, redlining, SF_gent):
-        redlining = gpd.read_file("/share/data/school_choice_equity/data/CASanFrancisco1937.geojson")
+    def redlining_data(self, gent_df=SF_gent):
+        redlining = gpd.read_file(REDLINING_PATH)
         points = redlining.copy()
         points.geometry = redlining['geometry'].centroid
         points.crs =redlining.crs
-        new_redlining = points.join(SF_gent)
+        new_redlining = points.join(gent_df)
         redlining_final = new_redlining[["name", "holc_id", "holc_grade", "area_description_data", "geometry", "GEOID"]]
         return redlining_final
-    
-
