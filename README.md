@@ -53,6 +53,12 @@ The code repository will mirror the data pipeline by creating the corresponding 
 
 In addition, there are multiple other files that need to be stored and managed. The community has arrived at a standard setup of the project directories that we will also follow.
 
+We recommend creating a development environment to run the scripts and notebooks from this project. Once you have generated the environment, you can install the required packages with the help of the `requirements.txt` file:
+
+1. `cd` to the directory where `requirements.txt` is located.
+2. activate your virtualenv.
+3. run: `pip install -r requirements.txt` in your shell.
+
 Directory structure:
 
 ```
