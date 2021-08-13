@@ -203,7 +203,7 @@ class ClassifierDataApi:
         """
         
         if self.__redline_data is None:
-            redline_df = self.get_redline_map_data()
+            self.__redline_data = self.get_redline_map_data()
             
         redlining_by_grade = self.__redline_data.dissolve(by='holc_grade').to_crs(map_data.crs)
         
@@ -231,18 +231,18 @@ class ClassifierDataApi:
 
         if ax is None:
             fig, ax = plt.subplots(figsize=(6,6))
-        
+
         # Missing values workaround for the gentrification plot:
         if missing_vals is not None:
-            map_df_data.plot(column=col, ax=ax, cmap=cmap, 
+            map_df_data.plot(column=col, ax=ax, cmap=cmap,
                              legend=legend, legend_kwds={'orientation': "horizontal"})
             missing_vals.plot(color="lightgrey", hatch = "///", label = "Missing values", ax=ax)
-            
+
         else:
-            map_df_data.plot(column=col, ax=ax, cmap=cmap, 
+            map_df_data.plot(column=col, ax=ax, cmap=cmap,
                              legend=legend, legend_kwds={'orientation': "horizontal"},
                              missing_kwds={'color': 'lightgrey'})
-            
+
         if title is None:
             ax.set_title(col, fontsize=12)
         else:
