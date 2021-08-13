@@ -46,26 +46,6 @@ To run the counterfactual simulation, we first need to add the new tiebreakers t
 2. Once we update the student data with the new equity tiebreaker we need to run a version of the `sfusd-project` simulation engine that we adapted to run the equity tiebreaker. This version of the simulation engine is in the `dssg-equity-tiebreaker` branch. We can find the necessary path configuration to run this version of the simulator engine in the file`configs/dssg_path_config.yaml` found in this project.
 3. Finally, once we have simulated the policy with the corresponding tiebreaker we can use the `SimulationEvaluation` object located in the `src.d06_reporting.simulation_evaluation` module. An example of the use of this object can be found in the `report/` notebooks that evaluate the results.
 
-# Methodologies
-
-## Naive
-
-Order the blocks by how many focal students they have. We consider two orderings, by absolute number of students and by relative number of students (`rate=True`). By relative number of students we mean the proportion of focal students within the block.
-
-## CTIP1
-
-A student is labeled as _focal_ if they live in a block that belongs to the first CTIP quintile. This is the baseline.
-
-## Knapsack Problem
-
-We model the process of selecting or labeling the blocks as a Knapsack Problem. The [Knapsack Problem](https://en.wikipedia.org/wiki/Knapsack_problem) is a problem in combinatorial optimization: Given a set of items, each with a weight and a value, determine which items to include in a collection so that the total weight is less than or equal to a given limit, and the total value is as large as possible.
-
-Under this formulation, the items we are trying to select are the blocks, and the values and weights are the numbers of _focal_  and _non-focal_ students in that block, respectively. The limit on the total weight is our tolerance to the total number of _non-focal_ students that obtain the equity tiebreaker. In other words, this limit is the number of false positives (FP) and is equal to the FPR times the total number of _non-focal_ students (N).
-
-We expect the block selection obtained by this method to yield the maximum TPR for a given FPR.
-
-## Propositions
-
 # Code setup
 __Note__: This code setup is copied from the repo `dssg/hitchhikers-guide`.
 
