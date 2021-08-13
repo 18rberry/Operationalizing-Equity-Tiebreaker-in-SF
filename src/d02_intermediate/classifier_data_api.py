@@ -210,7 +210,7 @@ class ClassifierDataApi:
         return redline_series
     
     @staticmethod
-    def plot_map_column(map_df_data, col, missing_vals, cmap="viridis", ax=None, save=False,
+    def plot_map_column(map_df_data, col, missing_vals=None, cmap="viridis", ax=None, save=False,
                         fig=None, title=None, legend=True, show=True):
         """
         Plot map data with color set to the columns `col`
@@ -232,7 +232,8 @@ class ClassifierDataApi:
 
         map_df_data.plot(column=col, ax=ax, cmap=cmap, 
                              legend=legend, legend_kwds={'orientation': "horizontal"})
-        missing_vals.plot(color="lightgrey", hatch = "///", label = "Missing values", ax=ax)
+        if missing_vals is not None: 
+            missing_vals.plot(color="lightgrey", hatch = "///", label = "Missing values", ax=ax)
         if title is None:
             ax.set_title(col, fontsize=12)
         else:
