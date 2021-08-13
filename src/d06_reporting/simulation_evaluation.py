@@ -16,7 +16,7 @@ plt.rcParams['xtick.labelsize'] = '14'
 plt.rcParams['ytick.labelsize'] = '14'
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = 'TeX Gyre Heros'
-figsize = (6, 5)
+figsize = (30, 20)
 
 fn = 'False Negative'
 tn = 'True Negative'

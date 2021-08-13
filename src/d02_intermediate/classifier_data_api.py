@@ -210,7 +210,7 @@ class ClassifierDataApi:
         return redline_series
     
     @staticmethod
-    def plot_map_column(map_df_data, col, missing_vals=None, cmap="viridis", ax=None, save=False,
+    def plot_map_column(map_df_data, col, missing_vals=False, cmap="viridis", ax=None, save=False,
                         fig=None, title=None, legend=True, show=True):
         """
         Plot map data with color set to the columns `col`
@@ -227,13 +227,20 @@ class ClassifierDataApi:
         """
 
         if ax is None:
-            fig, ax = plt.subplots(figsize=(4.8,4.8))
+            fig, ax = plt.subplots(figsize=(10,10))
             save = True
-
-        map_df_data.plot(column=col, ax=ax, cmap=cmap, 
+        
+        #Missing values workaround for the gentrification plot:
+        if missing_vals:
+            map_df_data.plot(column=col, ax=ax, cmap=cmap, 
                              legend=legend, legend_kwds={'orientation': "horizontal"})
-        if missing_vals is not None: 
             missing_vals.plot(color="lightgrey", hatch = "///", label = "Missing values", ax=ax)
+            
+        else:
+            map_df_data.plot(column=col, ax=ax, cmap=cmap, 
+                             legend=legend, legend_kwds={'orientation': "horizontal"},
+                             missing_kwds={'color': 'lightgrey'})
+            
         if title is None:
             ax.set_title(col, fontsize=12)
         else:

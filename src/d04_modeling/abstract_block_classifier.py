@@ -160,17 +160,17 @@ class AbstractBlockClassifier:
         :return:
         """
         if ax is None:
-            fig, ax = plt.subplots(figsize=(25, 25))
+            fig, ax = plt.subplots(figsize=(10, 10))
             
         df = self.get_roc(param_arr)
         data_fpr = df["fpr"].values
         data_tpr = df["tpr"].values
         
-        ax.plot([0, 1], [0, 1], linestyle='--', label='No Skill')
-        ax.plot(data_fpr, data_tpr, linestyle='solid', label="Classifier")
-        ax.set_xlabel('False Positive Rate')
-        ax.set_ylabel('True Positive Rate')
-        ax.set_title("ROC curve", fontsize=30)
+        ax.plot([0, 1], [0, 1], linestyle='--')
+        ax.plot(data_fpr, data_tpr, linestyle='solid', linewidth=4, label="Tiebreaker")
+        ax.set_ylabel('Proportion of focal students\n receiving priority (TPR)', fontsize=25)
+        ax.set_xlabel('Proportion of non-Focal students\n receiving priority (FPR)', fontsize=25)
+        ax.set_title("Tiebreaker ROC curve", fontsize=30)
         ax.legend(loc="lower right")
         plt.legend(fontsize=25)
         
