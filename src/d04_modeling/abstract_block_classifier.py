@@ -304,7 +304,8 @@ class AbstractBlockClassifier:
         if ax is None:
             fig, ax = plt.subplots(figsize=(25,25))
 
-        ax = self.__classifier_data_api.plot_map_column(map_df_data, missing_vals=missing_vals, col="New Gent", cmap="YlOrRd", ax=ax)
+        ax = self.__classifier_data_api.plot_map_column(map_df_data, missing_vals=missing_vals, col="New Gent", 
+                                                        cmap="YlOrRd", ax=ax)
         return ax
         
     def get_confusion_matrix(self, params):

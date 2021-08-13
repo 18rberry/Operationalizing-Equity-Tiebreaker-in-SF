@@ -240,7 +240,7 @@ class ClassifierDataApi:
             map_df_data.plot(column=col, ax=ax, cmap=cmap, 
                              legend=legend, legend_kwds={'orientation': "horizontal"},
                              missing_kwds={'color': 'lightgrey'})
-        
+            
         if title is None:
             ax.set_title(col, fontsize=12)
         else:

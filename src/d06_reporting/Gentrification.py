@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import collections
 import seaborn as sns
+import geopandas as gpd
 
 try:
     collectionsAbc = collections.abc
@@ -22,6 +23,9 @@ class Gentrification:
     def __init__(self):
         super().__init__()
         self.gentrification_cols = ["OD", "ARG", "EOG", "AdvG", "SMMI", "ARE", "BE", "SAE"]
+        self.merged_map_tiebreaker = None
+        self.params = None 
+        self.missing_vals = None
         
     def gentrification_data(self, df, block_df_dict):
         block_database = block_df_dict.dropna(axis=0, how='all').dropna(axis=1, how='all')
@@ -91,6 +95,60 @@ class Gentrification:
         plt.bar(self.gentrification_cols, gentrification_agg["4YR AVG Eth Flag Count"])
         plt.bar(self.gentrification_cols, gentrification_agg["4YR AVG Combo Flag Count"])
         plt.legend(labels)
+        
+    def grouped_Geoid(self, frl_df_raw, SF_gent): 
+        grouped_Geoid = self.gentrification_vs_demo(frl_df_raw, SF_gent)
+        gentrification_values = []
+        for i in grouped_Geoid.index: 
+            val = grouped_Geoid.loc[i, "Gentrification"]
+            if val == "OD":
+                gentrification_values.append(1)
+            elif val == "ARG":
+                gentrification_values.append(2)
+            elif val == "EOG":
+                gentrification_values.append(3)
+            elif val == "AdvG":
+                gentrification_values.append(4)
+            elif val == "SMMI":
+                gentrification_values.append(5)
+            elif val == "ARE":
+                gentrification_values.append(6)
+            elif val == "BE":
+                gentrification_values.append(7)
+            elif val == "SAE":
+                gentrification_values.append(8)
+
+        grouped_Geoid["New Gent"] = gentrification_values
+        return grouped_Geoid 
     
+    
+    def gentrification_map(self, eligibility_classifier, final_classifier, params, grouped_Geoid):
+        tiebreaker_map = final_classifier.get_tiebreaker_map(params, "geoid")
+        tiebreaker_map["New Geoid"] = tiebreaker_map.index.astype(str).str[:10].astype(int)
+        merged_map_tiebreaker = tiebreaker_map.merge(grouped_Geoid, left_on = "New Geoid", right_index = True)
+        merged_map_tiebreaker = gpd.GeoDataFrame(merged_map_tiebreaker)
+        missing_vals = tiebreaker_map[~tiebreaker_map["New Geoid"].isin(merged_map_tiebreaker["New Geoid"])]
+        
+        self.merged_map_tiebreaker = merged_map_tiebreaker
+        self.params = params 
+        self.missing_vals = missing_vals 
+        return final_classifier.plot_map_new(merged_map_tiebreaker, params, missing_vals)
+        
+    def gentrification_map_tiebreaker(self, final_classifier):
+        new_solution = final_classifier.get_solution_set(self.params)
+        merged_tiebreaker_filtered = self.merged_map_tiebreaker[self.merged_map_tiebreaker.index.isin(new_solution)]
+        fig, ax = plt.subplots(figsize=(15, 15))
+        self.merged_map_tiebreaker.plot(ax=ax, cmap = "YlOrRd", column = "New Gent", legend = True)
+        merged_tiebreaker_filtered.plot(ax=ax, alpha = 0.7, color = 'green')
+        return self.missing_vals.plot(color="lightgrey", hatch = "///", label = "Missing values", ax=ax)
+    
+    def redlining_data(self, redlining, SF_gent):
+        redlining = gpd.read_file("/share/data/school_choice_equity/data/CASanFrancisco1937.geojson")
+        points = redlining.copy()
+        points.geometry = redlining['geometry'].centroid
+        points.crs =redlining.crs
+        new_redlining = points.join(SF_gent)
+        redlining_final = new_redlining[["name", "holc_id", "holc_grade", "area_description_data", "geometry", "GEOID"]]
+        return redlining_final
     
 
