@@ -1,0 +1,22 @@
+paths:
+  sfusd: "/share/data/school_choice/"
+  local-runs-path: "~/sfusd-project/local_runs"
+  student-save: '../school_choice_equity/simulator_data/precomputed/'
+  special: "/share/data/school_choice_equity/local_runs/Special"
+  assignment-folder: "/share/data/school_choice_equity/local_runs/Assignments"
+  parameters: "/share/data/school_choice_equity/local_runs/Data/MNL_Coefficients_0912_no_sped.xlsx"
+  features: "/share/data/school_choice_equity/local_runs/Data/Program_MNL_0912.csv"
+  distance-data: ""
+  zone-paths:
+    - '/share/data/school_choice_equity/local_runs/Zones/citywideGE_optGE862432.txt'
+  zone-paths-index: 2
+  estimate-path: '~/sfusd-project/logit/datagen/outputs/distance/Estimates.csv'
+  zone-files:
+    Medium1: "/share/data/school_choice_equity/local_runs/Data/optGE862432.csv"
+    Z1: "/share/data/school_choice_equity/local_runs/Data/optGE862432.csv"
+    optGE780873: "/share/data/school_choice_equity/local_runs/Data/optGE780873.csv"
+    Large1: "/share/data/school_choice_equity/local_runs/Data/optGE35532.csv"
+    Con0: "/share/data/school_choice_equity/local_runs/Zones/concept0zones.csv"
+    Con1: "/share/data/school_choice_equity/local_runs/Zones/concept1zones.csv"
+    Con2: "/share/data/school_choice_equity/local_runs/Zones/concept2zones.csv"
+    Con3: "/share/data/school_choice_equity/local_runs/Zones/concept3zones.csv"

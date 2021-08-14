@@ -70,7 +70,7 @@ def add_group_columns(df: pd.DataFrame, group_type, len_BG=8, positive_group="nF
         print("Grouping method must be nbhd or block_group. No grouping defined.")
         return df
 
-    #Create an aggregated dataframe with counts per block group:
+    # Create an aggregated dataframe with counts per block group:
     agg_df = df[[bg_col, "n", "nFocal", "nFRL", "nAALPI", "nBoth"]].groupby(bg_col).sum()
     agg_df = agg_df.rename(columns={"n": "BG_n",
                                     "nFocal": "BG_nFocal",
@@ -90,8 +90,8 @@ def add_group_columns(df: pd.DataFrame, group_type, len_BG=8, positive_group="nF
     extended_df['BG_pctBoth'] = extended_df['BG_nBoth'] / extended_df['BG_n']
     extended_df['BG_pctBothUnion'] = extended_df['BG_nBoth'] / extended_df['BG_nFocal'] #union
 
-    
     return extended_df
+
 
 def add_bayesian_bernoulli(frl_df):
     """
@@ -108,7 +108,15 @@ def add_bayesian_bernoulli(frl_df):
         
     return frl_df
 
-def show_values_on_bars(axs, h_v="v", space=0.4):
+
+def show_values_on_bars(ax, h_v="v", space=0.4):
+    """
+    Add bar values to barplot
+    :param ax: (optional) axis values
+    :param h_v: barplot orientation ('v' or 'h')
+    :param space: space size
+    :return:
+    """
     def _show_on_single_plot(ax):
         if h_v == "v":
             for p in ax.patches:
@@ -116,19 +124,19 @@ def show_values_on_bars(axs, h_v="v", space=0.4):
                     continue
                 _x = p.get_x() + p.get_width() / 2
                 _y = p.get_y() + p.get_height() / 2
-                value = "%i%%" % (p.get_height() * 100.)
+                value = "%.1f%%" % (p.get_height() * 100.)
                 ax.text(_x, _y, value, ha="center") 
         elif h_v == "h":
             for p in ax.patches:
                 if p.get_width() * 100. < 1:
                     continue
-                _x = p.get_x() + p.get_width() # + float(space)
+                _x = p.get_x() + p.get_width()  # + float(space)
                 _y = p.get_y() + p.get_height()
-                value = "%i%%" % (p.get_width() * 100.)
+                value = "%.1f%%" % (p.get_width() * 100.)
                 ax.text(_x, _y, value, ha="left")
 
-    if isinstance(axs, np.ndarray):
-        for idx, ax in np.ndenumerate(axs):
+    if isinstance(ax, np.ndarray):
+        for idx, ax in np.ndenumerate(ax):
             _show_on_single_plot(ax)
     else:
-        _show_on_single_plot(axs)
+        _show_on_single_plot(ax)

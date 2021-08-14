@@ -75,13 +75,3 @@ class KnapsackClassifier(AbstractSimpleClassifier):
         solution_set = pd.Index(solution_set, name=self.data.index.name)
         
         return solution_set
-        
-        
-if __name__ == "__main__":
-    model = KnapsackClassifier(positive_group='nFocal', load=True)
-    results = model.get_roc()
-    
-    fpr = 0.1
-
-    print(model.get_confusion_matrix(params=fpr))
-    model.plot_map(params=fpr)

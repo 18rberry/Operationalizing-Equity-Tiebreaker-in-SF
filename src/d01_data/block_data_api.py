@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+import geopandas as gdp
 sys.path.append('../..')
 from src.d00_utils.utils import get_group_value
 from src.d01_data.abstract_data_api import AbstractDataApi
@@ -310,7 +311,6 @@ class BlockDataApi(AbstractDataApi):
         frl_data['pctAA'] = pct_aa.reindex(frl_data.index).fillna(0).values
         frl_data['nAA'] = frl_data['pctAA'].values * frl_data['4YR AVG Eth Flag Count']
         frl_data.reset_index(inplace=True)
-        
 
         self.__cache_frl[frl_key]['data'] = frl_data
         

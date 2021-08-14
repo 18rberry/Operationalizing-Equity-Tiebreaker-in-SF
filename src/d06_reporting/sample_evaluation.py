@@ -11,7 +11,7 @@ import seaborn as sns
 
 import sys
 sys.path.append('../')
-sns.set_theme(palette="pastel")
+# sns.set_theme(palette="pastel")
 
 from src.d02_intermediate.classifier_data_api import ClassifierDataApi
 from src.d04_modeling.knapsack_classifier import KnapsackClassifier
@@ -49,14 +49,13 @@ class SampleEvaluation:
         AbstractBlockClassifier().refresh()
         positive_group = propositional_model.positive_group
         model_dict = OrderedDict()
+        model_dict['CTIP1'] = {'model': CtipClassifier(positive_group=positive_group, frl_key=frl_key),
+                               'params': None,
+                               'fname': 'ctip'}
         model_dict['Benchmark'] = {'model': NaiveClassifier(positive_group=positive_group, proportion=True,
                                                             frl_key=frl_key),
                                    'params': None,
                                    'fname': 'naivep'}
-        model_dict['CTIP1'] = {'model': CtipClassifier(positive_group=positive_group, frl_key=frl_key),
-                               'params': None,
-                               'fname': 'ctip'}
-    
         model_dict['DSSG ET'] = {'model': propositional_model,
                                  'params': propositional_params,
                                  'fname': 'pc'}
@@ -65,13 +64,14 @@ class SampleEvaluation:
         print("Focal group: %s" % positive_group)
         return model_dict
 
-    def heat_map1(self, column, frl_key=None, pct_frl=True, title=""):
+    def heat_map1(self, column, frl_key=None, pct_frl=True, title=None, legend=False):
         """
         Generate heat map of SF for the corresponding column
         :param column: column with value used for the heat map
         :param frl_key: string that identifies which FRL data should be loaded ('tk5' or 'tk12')
         :param pct_frl: load block data with percentage columns for FRL data
         :param title: title of the plot
+        :param legend: show map legend
         :return:
         """
         if frl_key is None:
@@ -81,9 +81,10 @@ class SampleEvaluation:
 
         self.__classifier_data_api.get_map_data()
         map_df_data = self.__classifier_data_api.get_map_df_data(cols=[column])
-        display(HTML("<h3>%s</h3>" % title))
+        if title is not None:
+            display(HTML("<h3>%s</h3>" % title))
         self.__classifier_data_api.plot_map_column(map_df_data, column, cmap="YlOrRd",
-                                                   save=True, legend=False, title="",
+                                                   save=True, legend=legend, title="",
                                                    show=True)
 
     def classifier_evalutaion_roc(self, x=None):
