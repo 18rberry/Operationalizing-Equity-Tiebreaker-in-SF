@@ -9,6 +9,7 @@ from src.d01_data.student_data_api import StudentDataApi, _block_features, _cens
 _diversity_index_features
 from src.d00_utils.file_paths import GEO_DATA_PATH, REDLINE_DATA_PATH
 from src.d00_utils.utils import get_group_value, add_percent_columns
+from src.d00_utils.file_paths import REDLINING_PATH
 
 geoid_name = 'geoid'
 
@@ -103,11 +104,9 @@ class ClassifierDataApi:
         Query HOLC grades map data used in the redline criterion
         """
         if self.__redline_data is None:
-            geodata_path = REDLINE_DATA_PATH
-            file_name = 'CASanFrancisco1937'
-            data_type = '.geojson'
-
-            redline_map = gpd.read_file(geodata_path + file_name + data_type)
+            file_path = REDLINING_PATH
+            redline_map = gpd.read_file(file_path)
+            
             self.__redline_data = redline_map
             
         return self.__redline_data
@@ -280,7 +279,25 @@ class ClassifierDataApi:
             fig.savefig(fname)
 
         return ax
+    
+    def plot_redline_data(self, ax=None, size=20, show=True):
         
+        sf_gdf = self.get_map_df_data("Neighborhood")
+        redline_gdf = self.get_redline_map_data().dissolve(by='holc_grade').to_crs(sf_gdf.crs)
+        
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(size,size))
+        
+        color_mapping = {"A": "green", "B": "blue", "C":"yellow", "D":"red"}
+        ax = sf_gdf.plot(color='gray', ax=ax, alpha=0.9)
+        redline_gdf.plot(ax=ax, categorical=True,
+                         color=redline_gdf.index.map(color_mapping), alpha=0.6,
+                         legend=True, legend_kwds={"fontsize":30})
+
+        if show:
+            plt.show()
+            
+        return ax
         
 if __name__ == "__main__":
     obj = ClassifierDataApi()
