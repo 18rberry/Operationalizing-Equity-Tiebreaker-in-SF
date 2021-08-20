@@ -36,7 +36,7 @@ The sample evaluation consists on comparing the portion of _focal_ students bene
 
 `TPR = TP / (TP + FN)`
 
-`FNR = FP / (FP + TN)`
+`FPR = FP / (FP + TN)`
 
 ## Counterfactual Simulation
 The counterfactual simulation consists of using the school assignment simulation engine to evaluate and compare the average performance of _focal_ students in the school assignment process under the proposed equity tiebreaker. This is what is important after all.
@@ -45,6 +45,27 @@ To run the counterfactual simulation, we first need to add the new tiebreakers t
 1. First, we need to update (or create if it doesn't exist) a version of the student data that has a binary column indicating if a student has the tiebreaker. We can do this by using the `SimulationPreprocessing` object located in the `src.d02_intermediate.simulation_preprocessing` module. For the DSSG summer program, we used the notebook `20210730-jjl-preprocess-simulation.ipynb`.
 2. Once we update the student data with the new equity tiebreaker we need to run a version of the `sfusd-project` simulation engine that we adapted to run the equity tiebreaker. This version of the simulation engine is in the `dssg-equity-tiebreaker` branch. We can find the necessary path configuration to run this version of the simulator engine in the file`configs/dssg_path_config.yaml` found in this project.
 3. Finally, once we have simulated the policy with the corresponding tiebreaker we can use the `SimulationEvaluation` object located in the `src.d06_reporting.simulation_evaluation` module. An example of the use of this object can be found in the `report/` notebooks that evaluate the results.
+
+# Managing Dependencies
+This project manages dependencies with virtual environments, to keep everyone on the same page. The preferred method is to use `virtualenv` in Python 2 to create a Python 3 environment, by adding the -p python3 flag when creating the environment. For example:
+
+```
+/dssg_sfusd$ virtualenv my_python3_environment -p python3
+```
+
+__Important__: Ensure you are located in the `/dssg_sfusd` directory! Otherwise you will end up creating a virtual environment in a random directory, which can get confusing! If you accidentally do create an environment in a random directory, just remove the virtual environment directory from that random directory.
+
+In order to activate the virtual environment you can run
+
+```
+/dssg_sfusd$ source my_python3_environment/bin/activate
+```
+
+The dependencies related to this project are listed in the `/dssg_sfusd/requirements.txt` file. In order to install them you have to activate the virtual environment and run
+
+```
+/dssg_sfusd$ pip3 install -r requirements.txt
+```
 
 # Code setup
 __Note__: This code setup is copied from the repo `dssg/hitchhikers-guide`.
