@@ -47,7 +47,7 @@ To run the counterfactual simulation, we first need to add the new tiebreakers t
 3. Finally, once we have simulated the policy with the corresponding tiebreaker we can use the `SimulationEvaluation` object located in the `src.d06_reporting.simulation_evaluation` module. An example of the use of this object can be found in the `report/` notebooks that evaluate the results.
 
 # Managing Dependencies
-This project manages dependencies with virtual environments, to keep everyone on the same page. The preferred method is to use `virtualenv` in Python 2 to create a Python 3 environment, by adding the -p python3 flag when creating the environment. For example:
+This project manages dependencies with virtual environments, to keep everyone on the same page. The preferred method is to use `virtualenv` in Python 2 to create a Python 3 environment, by adding the `-p python3` flag when creating the environment. For example:
 
 ```
 /dssg_sfusd$ virtualenv my_python3_environment -p python3
