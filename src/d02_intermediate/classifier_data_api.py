@@ -7,8 +7,9 @@ from time import time
 from src.d01_data.block_data_api import BlockDataApi, _default_frl_key
 from src.d01_data.student_data_api import StudentDataApi, _block_features, _census_block_column, \
 _diversity_index_features
-
+from src.d00_utils.file_paths import GEO_DATA_PATH, REDLINE_DATA_PATH
 from src.d00_utils.utils import get_group_value, add_percent_columns
+from src.d00_utils.file_paths import REDLINING_PATH
 
 geoid_name = 'geoid'
 
@@ -17,7 +18,7 @@ block_data_api = BlockDataApi()
 periods_list = ["1415", "1516", "1617", "1718", "1819", "1920"]
 student_data_api = StudentDataApi()
 
-#Those are the demographic columns we want:
+# Those are the demographic columns we want:
 block_columns = ['BlockGroup','CTIP_2013 assignment','SF Analysis Neighborhood','SFHA_ex_Sr']
 block_columns_rename = {'CTIP_2013 assignment': 'CTIP13',
                         'SF Analysis Neighborhood':'Neighborhood',
@@ -25,6 +26,7 @@ block_columns_rename = {'CTIP_2013 assignment': 'CTIP13',
 
 frl_column_dict = {'Geoid Group': 'group', '4YR AVG Student Count': 'n', '4YR AVG FRL Count': 'nFRL',
        '4YR AVG Eth Flag Count': 'nAALPI', '4YR AVG Combo Flag Count': 'nBoth'}
+
 
 class ClassifierDataApi:
     __block_data = None
@@ -44,6 +46,7 @@ class ClassifierDataApi:
     def get_block_data(self, redline=True, frl_key=_default_frl_key, pct_frl=False):
         """
         Query block data from all three sources.
+        :param redline: boolean to add redline status
         :param frl_key: string that identifies which FRL data should be loaded ('tk5' or tk12')
         :param pct_frl: boolean to add the percent values of the frl variables
         :return:
@@ -72,7 +75,7 @@ class ClassifierDataApi:
             
             self.__block_data = df
             
-            #Add the redline status:
+            # Add the redline status:
             if redline:
                 block_gdf = self.get_map_df_data(cols="BlockGroup")
                 self.__block_data["Redline"] = self.get_redline_status(block_gdf)
@@ -84,7 +87,7 @@ class ClassifierDataApi:
         Query map data used to build the geographic maps
         """
         if self.__map_data is None:
-            geodata_path = '/share/data/school_choice/dssg/census2010/'
+            geodata_path = GEO_DATA_PATH
             file_name = 'geo_export_e77bce0b-6556-4358-b36b-36cfcf826a3c'
             data_types = ['.shp', '.dbf', '.prj', '.shx']
 
@@ -101,11 +104,9 @@ class ClassifierDataApi:
         Query HOLC grades map data used in the redline criterion
         """
         if self.__redline_data is None:
-            geodata_path = '/share/data/school_choice_equity/data/'
-            file_name = 'CASanFrancisco1937'
-            data_type = '.geojson'
-
-            redline_map = gpd.read_file(geodata_path + file_name + data_type)
+            file_path = REDLINING_PATH
+            redline_map = gpd.read_file(file_path)
+            
             self.__redline_data = redline_map
             
         return self.__redline_data
@@ -165,15 +166,15 @@ class ClassifierDataApi:
         :return:
         """
         
-        #Collect the meaningful demographic columns:
+        # Collect the meaningful demographic columns:
         demo_df = block_data_api.get_data().set_index('Block')[block_columns].dropna(subset=['BlockGroup'])
-        #Clean the SFHA column:
+        # Clean the SFHA column:
         demo_df = demo_df.replace({'SFHA_ex_Sr': {'yes': True, 'no': False}})
         
-        #Rename the columns for easier acces:
+        # Rename the columns for easier acces:
         demo_df.rename(columns=block_columns_rename, inplace=True)
         
-        #Set index as geoid
+        # Set index as geoid
         demo_df.index.name = geoid_name
         
         return demo_df
@@ -201,7 +202,7 @@ class ClassifierDataApi:
         """
         
         if self.__redline_data is None:
-            redline_df = self.get_redline_map_data()
+            self.__redline_data = self.get_redline_map_data()
             
         redlining_by_grade = self.__redline_data.dissolve(by='holc_grade').to_crs(map_data.crs)
         
@@ -210,11 +211,12 @@ class ClassifierDataApi:
         return redline_series
     
     @staticmethod
-    def plot_map_column(map_df_data, col, missing_vals=False, cmap="viridis", ax=None, save=False,
+    def plot_map_column(map_df_data, col, missing_vals=None, cmap="viridis", ax=None, save=False,
                         fig=None, title=None, legend=True, show=True):
         """
         Plot map data with color set to the columns `col`
         :param map_df_data: geopandas.DataFrame of SFUSD
+        :param missing_vals: geopandas.DataFrame of blocks with missing values
         :param col: column of `map_df_data` with the value of interest
         :param cmap: color map for the plot
         :param ax: (optional) axis values. Must also provide `fig` value
@@ -227,20 +229,19 @@ class ClassifierDataApi:
         """
 
         if ax is None:
-            fig, ax = plt.subplots(figsize=(10,10))
-            save = True
-        
-        #Missing values workaround for the gentrification plot:
-        if missing_vals:
-            map_df_data.plot(column=col, ax=ax, cmap=cmap, 
+            fig, ax = plt.subplots(figsize=(6,6))
+
+        # Missing values workaround for the gentrification plot:
+        if missing_vals is not None:
+            map_df_data.plot(column=col, ax=ax, cmap=cmap,
                              legend=legend, legend_kwds={'orientation': "horizontal"})
             missing_vals.plot(color="lightgrey", hatch = "///", label = "Missing values", ax=ax)
-            
+
         else:
-            map_df_data.plot(column=col, ax=ax, cmap=cmap, 
+            map_df_data.plot(column=col, ax=ax, cmap=cmap,
                              legend=legend, legend_kwds={'orientation': "horizontal"},
                              missing_kwds={'color': 'lightgrey'})
-            
+
         if title is None:
             ax.set_title(col, fontsize=12)
         else:
@@ -278,7 +279,25 @@ class ClassifierDataApi:
             fig.savefig(fname)
 
         return ax
+    
+    def plot_redline_data(self, ax=None, size=20, show=True):
         
+        sf_gdf = self.get_map_df_data("Neighborhood")
+        redline_gdf = self.get_redline_map_data().dissolve(by='holc_grade').to_crs(sf_gdf.crs)
+        
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(size,size))
+        
+        color_mapping = {"A": "green", "B": "blue", "C":"yellow", "D":"red"}
+        ax = sf_gdf.plot(color='gray', ax=ax, alpha=0.9)
+        redline_gdf.plot(ax=ax, categorical=True,
+                         color=redline_gdf.index.map(color_mapping), alpha=0.6,
+                         legend=True, legend_kwds={"fontsize":30})
+
+        if show:
+            plt.show()
+            
+        return ax
         
 if __name__ == "__main__":
     obj = ClassifierDataApi()
