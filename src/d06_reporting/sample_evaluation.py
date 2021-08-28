@@ -90,6 +90,7 @@ class SampleEvaluation:
     def classifier_evalutaion_roc(self, x=None):
         """
         Plot ROC curve for all the models
+        :param x: (optional) plot a vertical line at x 
         :return:
         """
         model_dict = self.__model_dict.copy()
